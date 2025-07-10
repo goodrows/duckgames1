@@ -3,13 +3,17 @@
 <head>
   <title>Rocket Dodge Game</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       background-color: black;
       overflow: hidden;
       font-family: Arial, sans-serif;
       color: white;
-      text-align: center;
     }
 
     #gameArea {
@@ -19,14 +23,14 @@
     }
 
     #rocket {
-      width: 50px;
-      height: 80px;
-      background: red;
+      width: 40px;
+      height: 60px;
+      background-color: red;
       position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      border-radius: 10px;
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
     }
 
     .bullet {
@@ -42,4 +46,80 @@
       top: 40%;
       left: 50%;
       transform: translate(-50%, -50%);
-      fo
+      font-size: 36px;
+      display: none;
+      text-align: center;
+    }
+
+    #gameOver a {
+      color: white;
+      text-decoration: underline;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameArea">
+    <div id="rocket"></div>
+    <div id="gameOver">Game Over<br><a href="page1.html">Retry</a></div>
+  </div>
+
+  <script>
+    const rocket = document.getElementById("rocket");
+    const gameArea = document.getElementById("gameArea");
+    const gameOverText = document.getElementById("gameOver");
+
+    let rocketX = window.innerWidth / 2 - 20; // 40px wide
+    rocket.style.left = rocketX + "px";
+
+    // Move rocket with arrow keys
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft" && rocketX > 0) {
+        rocketX -= 20;
+      } else if (e.key === "ArrowRight" && rocketX < window.innerWidth - 40) {
+        rocketX += 20;
+      }
+      rocket.style.left = rocketX + "px";
+    });
+
+    // Create bullets
+    function spawnBullet() {
+      const bullet = document.createElement("div");
+      bullet.classList.add("bullet");
+      bullet.style.left = Math.random() * (window.innerWidth - 10) + "px";
+      gameArea.appendChild(bullet);
+
+      let bulletY = 0;
+      const bulletInterval = setInterval(() => {
+        bulletY += 5;
+        bullet.style.top = bulletY + "px";
+
+        const rocketRect = rocket.getBoundingClientRect();
+        const bulletRect = bullet.getBoundingClientRect();
+
+        if (
+          bulletRect.top < rocketRect.bottom &&
+          bulletRect.bottom > rocketRect.top &&
+          bulletRect.left < rocketRect.right &&
+          bulletRect.right > rocketRect.left
+        ) {
+          clearInterval(bulletInterval);
+          gameOver();
+        }
+
+        if (bulletY > window.innerHeight) {
+          clearInterval(bulletInterval);
+          bullet.remove();
+        }
+      }, 16);
+    }
+
+    function gameOver() {
+      gameOverText.style.display = "block";
+      clearInterval(spawnLoop);
+    }
+
+    const spawnLoop = setInterval(spawnBullet, 600);
+  </script>
+</body>
+</html>
