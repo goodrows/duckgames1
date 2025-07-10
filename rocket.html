@@ -41,18 +41,28 @@
       top: 0;
     }
 
-    #scoreDisplay {
+    #scoreDisplay, #levelDisplay, #pauseBtn {
       position: absolute;
       top: 10px;
-      left: 10px;
       font-size: 20px;
     }
 
+    #scoreDisplay {
+      left: 10px;
+    }
+
     #levelDisplay {
-      position: absolute;
-      top: 10px;
       right: 10px;
-      font-size: 20px;
+    }
+
+    #pauseBtn {
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: white;
+      color: black;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
     }
 
     #gameOver {
@@ -77,22 +87,29 @@
     /* Mobile controls */
     .mobile-controls {
       position: absolute;
-      bottom: 10px;
+      bottom: 80px;
       width: 100%;
       display: flex;
       justify-content: center;
-      gap: 20px;
+      gap: 40px;
+      z-index: 10;
     }
 
     .mobile-btn {
       background-color: white;
       color: black;
-      padding: 15px 25px;
-      font-size: 20px;
+      padding: 20px 35px;
+      font-size: 24px;
       border: none;
-      border-radius: 8px;
+      border-radius: 12px;
       cursor: pointer;
-      opacity: 0.7;
+      opacity: 0.9;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      transition: transform 0.1s;
+    }
+
+    .mobile-btn:active {
+      transform: scale(0.95);
     }
 
     @media (min-width: 768px) {
@@ -107,6 +124,7 @@
     <div id="rocket"></div>
     <div id="scoreDisplay">Score: 0</div>
     <div id="levelDisplay">Level: 1</div>
+    <div id="pauseBtn">Pause</div>
     <div id="gameOver">
       Game Over<br>
       <span id="retryBtn">Retry</span>
@@ -126,6 +144,7 @@
     const retryBtn = document.getElementById("retryBtn");
     const scoreDisplay = document.getElementById("scoreDisplay");
     const levelDisplay = document.getElementById("levelDisplay");
+    const pauseBtn = document.getElementById("pauseBtn");
 
     const leftBtn = document.getElementById("leftBtn");
     const rightBtn = document.getElementById("rightBtn");
@@ -137,7 +156,10 @@
     let level = 1;
     let bulletSpeed = 5;
     let spawnRate = 600;
+
     let spawnLoop, scoreInterval, levelInterval;
+    let isPaused = false;
+    let activeBulletIntervals = [];
 
     function moveRocket(dir) {
       if (dir === "left" && rocketX > 0) {
@@ -156,6 +178,44 @@
     leftBtn.addEventListener("click", () => moveRocket("left"));
     rightBtn.addEventListener("click", () => moveRocket("right"));
 
+    pauseBtn.addEventListener("click", () => {
+      if (isPaused) {
+        resumeGame();
+      } else {
+        pauseGame();
+      }
+    });
+
+    function pauseGame() {
+      isPaused = true;
+      pauseBtn.textContent = "Resume";
+      clearInterval(spawnLoop);
+      clearInterval(scoreInterval);
+      clearInterval(levelInterval);
+      activeBulletIntervals.forEach(clearInterval);
+    }
+
+    function resumeGame() {
+      isPaused = false;
+      pauseBtn.textContent = "Pause";
+
+      spawnLoop = setInterval(spawnBullet, spawnRate);
+      scoreInterval = setInterval(() => {
+        score++;
+        scoreDisplay.textContent = "Score: " + score;
+      }, 500);
+
+      levelInterval = setInterval(() => {
+        level++;
+        bulletSpeed += 1;
+        if (spawnRate > 200) spawnRate -= 50;
+        levelDisplay.textContent = "Level: " + level;
+
+        clearInterval(spawnLoop);
+        spawnLoop = setInterval(spawnBullet, spawnRate);
+      }, 5000);
+    }
+
     function spawnBullet() {
       const bullet = document.createElement("div");
       bullet.classList.add("bullet");
@@ -164,27 +224,31 @@
 
       let bulletY = 0;
       const bulletInterval = setInterval(() => {
-        bulletY += bulletSpeed;
-        bullet.style.top = bulletY + "px";
+        if (!isPaused) {
+          bulletY += bulletSpeed;
+          bullet.style.top = bulletY + "px";
 
-        const rocketRect = rocket.getBoundingClientRect();
-        const bulletRect = bullet.getBoundingClientRect();
+          const rocketRect = rocket.getBoundingClientRect();
+          const bulletRect = bullet.getBoundingClientRect();
 
-        if (
-          bulletRect.top < rocketRect.bottom &&
-          bulletRect.bottom > rocketRect.top &&
-          bulletRect.left < rocketRect.right &&
-          bulletRect.right > rocketRect.left
-        ) {
-          clearInterval(bulletInterval);
-          gameOver();
-        }
+          if (
+            bulletRect.top < rocketRect.bottom &&
+            bulletRect.bottom > rocketRect.top &&
+            bulletRect.left < rocketRect.right &&
+            bulletRect.right > rocketRect.left
+          ) {
+            clearInterval(bulletInterval);
+            gameOver();
+          }
 
-        if (bulletY > window.innerHeight) {
-          clearInterval(bulletInterval);
-          bullet.remove();
+          if (bulletY > window.innerHeight) {
+            clearInterval(bulletInterval);
+            bullet.remove();
+          }
         }
       }, 16);
+
+      activeBulletIntervals.push(bulletInterval);
     }
 
     function startGame() {
@@ -195,9 +259,14 @@
       level = 1;
       bulletSpeed = 5;
       spawnRate = 600;
+      isPaused = false;
       gameOverText.style.display = "none";
+      pauseBtn.textContent = "Pause";
       scoreDisplay.textContent = "Score: 0";
       levelDisplay.textContent = "Level: 1";
+      document.querySelectorAll(".bullet").forEach(b => b.remove());
+      activeBulletIntervals.forEach(clearInterval);
+      activeBulletIntervals = [];
 
       spawnLoop = setInterval(spawnBullet, spawnRate);
 
@@ -222,16 +291,13 @@
       clearInterval(spawnLoop);
       clearInterval(scoreInterval);
       clearInterval(levelInterval);
+      activeBulletIntervals.forEach(clearInterval);
     }
 
-    retryBtn.addEventListener("click", () => {
-      document.querySelectorAll(".bullet").forEach(b => b.remove());
-      startGame();
-    });
+    retryBtn.addEventListener("click", startGame);
 
     // Start the game initially
     startGame();
   </script>
 </body>
 </html>
-
