@@ -5,56 +5,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+      margin: 0; padding: 0; box-sizing: border-box;
     }
-
     body {
       background-color: black;
       overflow: hidden;
       font-family: Arial, sans-serif;
       color: white;
     }
-
     #gameArea {
       width: 100vw;
       height: 100vh;
       position: relative;
     }
-
     #rocket {
       width: 20px;
       height: 50px;
       background-color: red;
+      box-shadow: 0 0 15px red;
       position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
+      border-radius: 5px;
     }
-
     .bullet {
       width: 10px;
       height: 30px;
       background: yellow;
       position: absolute;
       top: 0;
+      border-radius: 3px;
+      box-shadow: 0 0 8px yellow;
     }
-
-    #scoreDisplay, #levelDisplay, #pauseBtn {
+    #scoreDisplay, #levelDisplay, #livesDisplay, #pauseBtn {
       position: absolute;
       top: 10px;
-      font-size: 20px;
+      font-size: 18px;
+      user-select: none;
     }
-
-    #scoreDisplay {
-      left: 10px;
-    }
-
-    #levelDisplay {
-      right: 10px;
-    }
-
+    #scoreDisplay { left: 10px; }
+    #levelDisplay { left: 120px; }
+    #livesDisplay { right: 10px; }
     #pauseBtn {
       left: 50%;
       transform: translateX(-50%);
@@ -64,7 +56,6 @@
       border-radius: 6px;
       cursor: pointer;
     }
-
     #gameOver {
       position: absolute;
       top: 40%;
@@ -73,8 +64,8 @@
       font-size: 36px;
       display: none;
       text-align: center;
+      user-select: none;
     }
-
     #retryBtn {
       display: inline-block;
       margin-top: 10px;
@@ -83,8 +74,6 @@
       text-decoration: underline;
       cursor: pointer;
     }
-
-    /* Mobile controls */
     .mobile-controls {
       position: absolute;
       bottom: 80px;
@@ -93,8 +82,8 @@
       justify-content: center;
       gap: 40px;
       z-index: 10;
+      user-select: none;
     }
-
     .mobile-btn {
       background-color: white;
       color: black;
@@ -104,14 +93,12 @@
       border-radius: 12px;
       cursor: pointer;
       opacity: 0.9;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
       transition: transform 0.1s;
     }
-
     .mobile-btn:active {
       transform: scale(0.95);
     }
-
     @media (min-width: 768px) {
       .mobile-controls {
         display: none;
@@ -124,17 +111,22 @@
     <div id="rocket"></div>
     <div id="scoreDisplay">Score: 0</div>
     <div id="levelDisplay">Level: 1</div>
+    <div id="livesDisplay">Lives: 3</div>
     <div id="pauseBtn">Pause</div>
     <div id="gameOver">
       Game Over<br>
       <span id="retryBtn">Retry</span>
     </div>
 
-    <!-- Mobile controls -->
     <div class="mobile-controls">
       <button class="mobile-btn" id="leftBtn">◀ Left</button>
       <button class="mobile-btn" id="rightBtn">Right ▶</button>
     </div>
+
+    <!-- Embedded Sounds -->
+    <audio id="hitSound" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAABCxAgAEABAAZGF0YQAAAAA="></audio>
+    <audio id="bulletSound" src="data:audio/wav;base64,UklGRkAAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="></audio>
+    <audio id="levelupSound" src="data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAIlYAAEAfAAABAAgAZGF0YQAAAAA="></audio>
   </div>
 
   <script>
@@ -144,16 +136,22 @@
     const retryBtn = document.getElementById("retryBtn");
     const scoreDisplay = document.getElementById("scoreDisplay");
     const levelDisplay = document.getElementById("levelDisplay");
+    const livesDisplay = document.getElementById("livesDisplay");
     const pauseBtn = document.getElementById("pauseBtn");
 
     const leftBtn = document.getElementById("leftBtn");
     const rightBtn = document.getElementById("rightBtn");
+
+    const hitSound = document.getElementById("hitSound");
+    const bulletSound = document.getElementById("bulletSound");
+    const levelupSound = document.getElementById("levelupSound");
 
     let rocketX = window.innerWidth / 2 - 10;
     rocket.style.left = rocketX + "px";
 
     let score = 0;
     let level = 1;
+    let lives = 3;
     let bulletSpeed = 5;
     let spawnRate = 600;
 
@@ -162,15 +160,12 @@
     let activeBulletIntervals = [];
 
     function moveRocket(dir) {
-      if (dir === "left" && rocketX > 0) {
-        rocketX -= 20;
-      } else if (dir === "right" && rocketX < window.innerWidth - 20) {
-        rocketX += 20;
-      }
+      if (dir === "left" && rocketX > 0) rocketX -= 20;
+      else if (dir === "right" && rocketX < window.innerWidth - 20) rocketX += 20;
       rocket.style.left = rocketX + "px";
     }
 
-    document.addEventListener("keydown", function (e) {
+    document.addEventListener("keydown", e => {
       if (e.key === "ArrowLeft") moveRocket("left");
       if (e.key === "ArrowRight") moveRocket("right");
     });
@@ -179,11 +174,7 @@
     rightBtn.addEventListener("click", () => moveRocket("right"));
 
     pauseBtn.addEventListener("click", () => {
-      if (isPaused) {
-        resumeGame();
-      } else {
-        pauseGame();
-      }
+      isPaused ? resumeGame() : pauseGame();
     });
 
     function pauseGame() {
@@ -198,19 +189,18 @@
     function resumeGame() {
       isPaused = false;
       pauseBtn.textContent = "Pause";
-
       spawnLoop = setInterval(spawnBullet, spawnRate);
       scoreInterval = setInterval(() => {
         score++;
         scoreDisplay.textContent = "Score: " + score;
       }, 500);
-
       levelInterval = setInterval(() => {
         level++;
         bulletSpeed += 1;
         if (spawnRate > 200) spawnRate -= 50;
         levelDisplay.textContent = "Level: " + level;
-
+        levelupSound.currentTime = 0;
+        levelupSound.play();
         clearInterval(spawnLoop);
         spawnLoop = setInterval(spawnBullet, spawnRate);
       }, 5000);
@@ -221,6 +211,8 @@
       bullet.classList.add("bullet");
       bullet.style.left = Math.random() * (window.innerWidth - 10) + "px";
       gameArea.appendChild(bullet);
+      bulletSound.currentTime = 0;
+      bulletSound.play();
 
       let bulletY = 0;
       const bulletInterval = setInterval(() => {
@@ -238,7 +230,12 @@
             bulletRect.right > rocketRect.left
           ) {
             clearInterval(bulletInterval);
-            gameOver();
+            bullet.remove();
+            hitSound.currentTime = 0;
+            hitSound.play();
+            lives--;
+            livesDisplay.textContent = "Lives: " + lives;
+            if (lives <= 0) gameOver();
           }
 
           if (bulletY > window.innerHeight) {
@@ -257,19 +254,22 @@
 
       score = 0;
       level = 1;
+      lives = 3;
       bulletSpeed = 5;
       spawnRate = 600;
       isPaused = false;
-      gameOverText.style.display = "none";
       pauseBtn.textContent = "Pause";
+      gameOverText.style.display = "none";
+
       scoreDisplay.textContent = "Score: 0";
       levelDisplay.textContent = "Level: 1";
+      livesDisplay.textContent = "Lives: 3";
+
       document.querySelectorAll(".bullet").forEach(b => b.remove());
       activeBulletIntervals.forEach(clearInterval);
       activeBulletIntervals = [];
 
       spawnLoop = setInterval(spawnBullet, spawnRate);
-
       scoreInterval = setInterval(() => {
         score++;
         scoreDisplay.textContent = "Score: " + score;
@@ -280,7 +280,8 @@
         bulletSpeed += 1;
         if (spawnRate > 200) spawnRate -= 50;
         levelDisplay.textContent = "Level: " + level;
-
+        levelupSound.currentTime = 0;
+        levelupSound.play();
         clearInterval(spawnLoop);
         spawnLoop = setInterval(spawnBullet, spawnRate);
       }, 5000);
@@ -295,8 +296,6 @@
     }
 
     retryBtn.addEventListener("click", startGame);
-
-    // Start the game initially
     startGame();
   </script>
 </body>
