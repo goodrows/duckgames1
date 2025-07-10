@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Rocket Dodge Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * {
       margin: 0;
@@ -40,16 +41,6 @@
       top: 0;
     }
 
-    #gameOver {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 36px;
-      display: none;
-      text-align: center;
-    }
-
     #scoreDisplay {
       position: absolute;
       top: 10px;
@@ -64,10 +55,50 @@
       font-size: 20px;
     }
 
-    #gameOver a {
+    #gameOver {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      display: none;
+      text-align: center;
+    }
+
+    #retryBtn {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 20px;
       color: white;
       text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* Mobile controls */
+    .mobile-controls {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .mobile-btn {
+      background-color: white;
+      color: black;
+      padding: 15px 25px;
       font-size: 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+
+    @media (min-width: 768px) {
+      .mobile-controls {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -76,15 +107,28 @@
     <div id="rocket"></div>
     <div id="scoreDisplay">Score: 0</div>
     <div id="levelDisplay">Level: 1</div>
-    <div id="gameOver">Game Over<br><a href="page1.html">Retry</a></div>
+    <div id="gameOver">
+      Game Over<br>
+      <span id="retryBtn">Retry</span>
+    </div>
+
+    <!-- Mobile controls -->
+    <div class="mobile-controls">
+      <button class="mobile-btn" id="leftBtn">◀ Left</button>
+      <button class="mobile-btn" id="rightBtn">Right ▶</button>
+    </div>
   </div>
 
   <script>
     const rocket = document.getElementById("rocket");
     const gameArea = document.getElementById("gameArea");
     const gameOverText = document.getElementById("gameOver");
+    const retryBtn = document.getElementById("retryBtn");
     const scoreDisplay = document.getElementById("scoreDisplay");
     const levelDisplay = document.getElementById("levelDisplay");
+
+    const leftBtn = document.getElementById("leftBtn");
+    const rightBtn = document.getElementById("rightBtn");
 
     let rocketX = window.innerWidth / 2 - 10;
     rocket.style.left = rocketX + "px";
@@ -93,18 +137,25 @@
     let level = 1;
     let bulletSpeed = 5;
     let spawnRate = 600;
+    let spawnLoop, scoreInterval, levelInterval;
 
-    // Move rocket
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowLeft" && rocketX > 0) {
+    function moveRocket(dir) {
+      if (dir === "left" && rocketX > 0) {
         rocketX -= 20;
-      } else if (e.key === "ArrowRight" && rocketX < window.innerWidth - 20) {
+      } else if (dir === "right" && rocketX < window.innerWidth - 20) {
         rocketX += 20;
       }
       rocket.style.left = rocketX + "px";
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") moveRocket("left");
+      if (e.key === "ArrowRight") moveRocket("right");
     });
 
-    // Bullet spawner
+    leftBtn.addEventListener("click", () => moveRocket("left"));
+    rightBtn.addEventListener("click", () => moveRocket("right"));
+
     function spawnBullet() {
       const bullet = document.createElement("div");
       bullet.classList.add("bullet");
@@ -136,25 +187,35 @@
       }, 16);
     }
 
-    // Score updater
-    const scoreInterval = setInterval(() => {
-      score++;
-      scoreDisplay.textContent = "Score: " + score;
-    }, 500);
+    function startGame() {
+      rocketX = window.innerWidth / 2 - 10;
+      rocket.style.left = rocketX + "px";
 
-    // Level progression
-    const levelInterval = setInterval(() => {
-      level++;
-      bulletSpeed += 1; // Faster bullets
-      if (spawnRate > 200) spawnRate -= 50; // Faster spawning, min 200ms
-      levelDisplay.textContent = "Level: " + level;
+      score = 0;
+      level = 1;
+      bulletSpeed = 5;
+      spawnRate = 600;
+      gameOverText.style.display = "none";
+      scoreDisplay.textContent = "Score: 0";
+      levelDisplay.textContent = "Level: 1";
 
-      clearInterval(spawnLoop);
       spawnLoop = setInterval(spawnBullet, spawnRate);
-    }, 5000); // Every 5 seconds
 
-    // Start bullet loop
-    let spawnLoop = setInterval(spawnBullet, spawnRate);
+      scoreInterval = setInterval(() => {
+        score++;
+        scoreDisplay.textContent = "Score: " + score;
+      }, 500);
+
+      levelInterval = setInterval(() => {
+        level++;
+        bulletSpeed += 1;
+        if (spawnRate > 200) spawnRate -= 50;
+        levelDisplay.textContent = "Level: " + level;
+
+        clearInterval(spawnLoop);
+        spawnLoop = setInterval(spawnBullet, spawnRate);
+      }, 5000);
+    }
 
     function gameOver() {
       gameOverText.style.display = "block";
@@ -162,6 +223,15 @@
       clearInterval(scoreInterval);
       clearInterval(levelInterval);
     }
+
+    retryBtn.addEventListener("click", () => {
+      document.querySelectorAll(".bullet").forEach(b => b.remove());
+      startGame();
+    });
+
+    // Start the game initially
+    startGame();
   </script>
 </body>
 </html>
+
