@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rocket Dodge Game</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: black;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+    }
+
+    #gameArea {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    #rocket {
+      width: 50px;
+      height: 80px;
+      background: red;
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 10px;
+    }
+
+    .bullet {
+      width: 10px;
+      height: 30px;
+      background: yellow;
+      position: absolute;
+      top: 0;
+    }
+
+    #gameOver {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      fo
