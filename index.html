@@ -1,330 +1,345 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Rocket Dodger - Retro</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      font-family: 'Press Start 2P', monospace;
-      background: #000;
-      color: #0f0;
-      user-select: none;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-    }
-    #gameArea {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      background:
-        radial-gradient(circle, #003300 0%, #000000 70%);
-    }
-    #rocket {
-      position: absolute;
-      width: 40px;
-      height: 60px;
-      background: #0f0;
-      bottom: 20px;
-      border-radius: 0; /* no curves */
-      border: 3px solid #090;
-      box-sizing: border-box;
-    }
-    .bullet {
-      position: absolute;
-      width: 10px;
-      height: 20px;
-      background: #0f0;
-      border-radius: 0; /* no curves */
-      border: 1px solid #060;
-      box-sizing: border-box;
-    }
-    .powerup {
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      border: 2px solid #0f0;
-      box-sizing: border-box;
-      filter: drop-shadow(0 0 2px #0f0);
-    }
-    .shield { background: #0ff; border-color: #0cc; }
-    .points { background: #6f6; border-color: #3c3; }
-    .speed { background: #fa0; border-color: #c70; }
-    .freeze { background: #00f; border-color: #009; }
-    .life { background: #f6a; border-color: #c60; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🚀 Rocket Dodger - Ultra Retro</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+<style>
+  /* Basic resets */
+  html, body {
+    margin: 0; padding: 0; overflow: hidden;
+    background: #000;
+    font-family: 'Press Start 2P', monospace;
+    color: #00ff00;
+    user-select: none;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+    /* Pixelated text */
+    image-rendering: pixelated;
+  }
 
-    #scoreboard {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 12px;
-      color: #0f0;
-      text-shadow: 0 0 4px #0f0;
-      user-select: none;
+  #gameArea {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background: #001000;
+    overflow: hidden;
+    filter: contrast(1.2) brightness(1.1);
+  }
+
+  /* Scanlines overlay */
+  #gameArea::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    width: 100%; height: 100%;
+    top: 0; left: 0;
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        rgba(0,255,0,0.05) 0,
+        rgba(0,255,0,0.05) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+    z-index: 1000;
+    animation: flicker 3s infinite;
+  }
+
+  /* Flicker animation for CRT effect */
+  @keyframes flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+      opacity: 1;
     }
-    #buttons {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 20;
-      display: flex;
-      gap: 10px;
-      user-select: none;
+    20%, 22%, 24%, 55% {
+      opacity: 0.85;
     }
-    #retryBtn, #pauseBtn {
-      background: transparent;
-      border: 2px solid #0f0;
-      color: #0f0;
-      padding: 8px 14px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 12px;
-      cursor: pointer;
-      text-shadow: 0 0 5px #0f0;
-      user-select: none;
-    }
-    #retryBtn {
-      display: none;
-    }
-    #retryBtn:hover, #pauseBtn:hover {
-      background: #0f0;
-      color: #000;
-      text-shadow: none;
-    }
-    #mobileControls {
-      position: absolute;
-      bottom: 60px;
-      left: 0;
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 20px;
-      user-select: none;
-      pointer-events: auto;
-    }
-    #mobileControls button {
-      width: 80px;
-      height: 80px;
-      font-size: 36px;
-      color: #0f0;
-      background: transparent;
-      border: 3px solid #0f0;
-      border-radius: 8px;
-      cursor: pointer;
-      opacity: 0.4;
-      user-select: none;
-      filter: drop-shadow(0 0 3px #0f0);
-    }
-    #mobileControls button:hover {
-      opacity: 0.8;
-    }
-    #rightBtn {
-      margin-right: 10px; /* Move left so it’s fully visible */
-    }
-    .trail {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      background: rgba(0, 255, 0, 0.3);
-      border-radius: 50%;
-      pointer-events: none;
-    }
-    #powerupNote {
-      position: absolute;
-      top: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 14px;
-      color: #ff0;
-      text-shadow: 0 0 5px #0f0;
-      font-family: 'Press Start 2P', monospace;
-      user-select: none;
-    }
-  </style>
+  }
+
+  /* Retro pixel text glow */
+  #scoreboard, #powerupNote, #buttons button {
+    text-shadow:
+      0 0 4px #0f0,
+      0 0 10px #0f0,
+      0 0 20px #0f0,
+      0 0 40px #0f0;
+  }
+
+  #scoreboard {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 12px;
+    z-index: 1500;
+  }
+
+  #powerupNote {
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    color: #7f7;
+    user-select: none;
+    z-index: 1500;
+  }
+
+  #buttons {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1500;
+    display: flex;
+    gap: 8px;
+  }
+
+  #retryBtn, #pauseBtn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: #00ff00;
+    background: transparent;
+    border: 2px solid #0f0;
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+    filter: drop-shadow(0 0 4px #0f0);
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  #retryBtn:hover, #pauseBtn:hover {
+    background: #0f0;
+    color: #000;
+    filter: drop-shadow(0 0 8px #0f0);
+  }
+
+  #retryBtn {
+    display: none;
+  }
+
+  /* Mobile controls */
+  #mobileControls {
+    position: absolute;
+    bottom: 50px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 1500;
+    user-select: none;
+  }
+  #mobileControls button {
+    width: 80px;
+    height: 80px;
+    font-size: 36px;
+    color: #0f0;
+    background: transparent;
+    border: 3px solid #0f0;
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0.4;
+    filter: drop-shadow(0 0 4px #0f0);
+    transition: opacity 0.2s;
+  }
+  #mobileControls button:hover {
+    opacity: 0.9;
+  }
+  #rightBtn {
+    margin-right: 10px;
+  }
+
+  /* Rocket pixel art shape */
+  #rocket {
+    position: absolute;
+    width: 24px;
+    height: 32px;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background:
+      linear-gradient(90deg, #0f0 4px, transparent 4px),
+      linear-gradient(#0f0 4px, transparent 4px);
+    background-size: 4px 4px;
+    background-repeat: repeat;
+    border: 2px solid #0f0;
+    box-sizing: border-box;
+    filter: drop-shadow(0 0 6px #0f0);
+  }
+  /* Make rocket shape a pixel rocket by layering squares */
+
+  /* Use pseudo elements for pixel fins and nose */
+  #rocket::before, #rocket::after {
+    content: "";
+    position: absolute;
+    background: #0f0;
+    filter: drop-shadow(0 0 3px #0f0);
+  }
+  #rocket::before {
+    width: 6px; height: 4px;
+    bottom: 2px; left: -6px;
+  }
+  #rocket::after {
+    width: 6px; height: 4px;
+    bottom: 2px; right: -6px;
+  }
+
+  /* Bullets pixel block */
+  .bullet {
+    position: absolute;
+    width: 8px;
+    height: 16px;
+    background: #0f0;
+    border: 1px solid #080;
+    box-sizing: border-box;
+    filter: drop-shadow(0 0 4px #0f0);
+  }
+
+  /* Powerups pixel style circles */
+  .powerup {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #0f0;
+    filter:
+      drop-shadow(0 0 5px #0f0);
+    box-sizing: border-box;
+  }
+  .shield { background: #0ff; border-color: #0cc; }
+  .points { background: #6f6; border-color: #3c3; }
+  .speed { background: #fa0; border-color: #c70; }
+  .freeze { background: #00f; border-color: #009; }
+  .life { background: #f6a; border-color: #c60; }
+
+  /* Pixel trail for rocket */
+  .trail {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: rgba(0,255,0,0.2);
+    border-radius: 1px;
+    pointer-events: none;
+    filter: drop-shadow(0 0 3px #0f0);
+  }
+
+  /* Blinking start screen */
+  #startScreen {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: #0f0;
+    font-size: 16px;
+    text-align: center;
+    z-index: 2000;
+    text-shadow:
+      0 0 6px #0f0,
+      0 0 15px #0f0,
+      0 0 30px #0f0;
+    user-select: none;
+    cursor: pointer;
+    animation: blink 1.4s infinite;
+  }
+  @keyframes blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0; }
+  }
+
+</style>
 </head>
 <body>
-  <div id="gameArea">
-    <div id="rocket"></div>
-    <div id="scoreboard">
-      Score: <span id="score">0</span> |
-      High: <span id="highScore">0</span> |
-      Lives: <span id="lives">3</span> |
-      Level: <span id="level">1</span>
-    </div>
-    <div id="powerupNote"></div>
-    <div id="buttons">
-      <button id="retryBtn">RESTART</button>
-      <button id="pauseBtn">PAUSE</button>
-    </div>
-    <div id="mobileControls">
-      <button id="leftBtn">⬅️</button>
-      <button id="rightBtn">➡️</button>
-    </div>
+<div id="gameArea">
+  <div id="rocket"></div>
+  <div id="scoreboard">
+    SCORE: <span id="score">0</span> |
+    HIGH: <span id="highScore">0</span> |
+    LIVES: <span id="lives">3</span> |
+    LEVEL: <span id="level">1</span>
   </div>
+  <div id="powerupNote"></div>
+  <div id="buttons">
+    <button id="retryBtn">RESTART</button>
+    <button id="pauseBtn">PAUSE</button>
+  </div>
+  <div id="mobileControls">
+    <button id="leftBtn">⬅️</button>
+    <button id="rightBtn">➡️</button>
+  </div>
+  <div id="startScreen">PRESS START<br>⬇️ CLICK OR TAP</div>
+</div>
 
-  <audio id="bgMusic" loop src="https://cdn.pixabay.com/audio/2022/03/15/audio_bab590d1a7.mp3"></audio>
-  <audio id="powerupSound" src="https://cdn.pixabay.com/audio/2022/03/24/audio_c1c86c017f.mp3"></audio>
-  <audio id="hitSound" src="https://cdn.pixabay.com/audio/2022/03/21/audio_127f20a1e6.mp3"></audio>
+<audio id="bgMusic" loop src="https://cdn.pixabay.com/audio/2022/03/15/audio_bab590d1a7.mp3"></audio>
+<audio id="powerupSound" src="https://freesound.org/data/previews/331/331912_3248244-lq.mp3"></audio>
+<audio id="hitSound" src="https://freesound.org/data/previews/331/331911_3248244-lq.mp3"></audio>
 
 <script>
 (() => {
   const rocket = document.getElementById("rocket");
-  const gameArea = document.getElementById("gameArea");
   const scoreEl = document.getElementById("score");
   const highScoreEl = document.getElementById("highScore");
   const livesEl = document.getElementById("lives");
   const levelEl = document.getElementById("level");
+  const powerupNote = document.getElementById("powerupNote");
   const retryBtn = document.getElementById("retryBtn");
   const pauseBtn = document.getElementById("pauseBtn");
-  const powerupNote = document.getElementById("powerupNote");
-
   const bgMusic = document.getElementById("bgMusic");
   const powerupSound = document.getElementById("powerupSound");
   const hitSound = document.getElementById("hitSound");
 
+  const leftBtn = document.getElementById("leftBtn");
+  const rightBtn = document.getElementById("rightBtn");
+  const startScreen = document.getElementById("startScreen");
+
   let bullets = [];
   let powerups = [];
-  let score = 0;
-  let level = 1;
-  let lives = 3;
-  let highScore = localStorage.getItem("highScore") || 0;
-  let bulletSpeed = 4;
-  let rocketSpeed = 10;
+
   let leftPressed = false;
   let rightPressed = false;
-  let isPaused = false;
 
-  let lastSpawnBulletTime = 0;
-  let lastSpawnPowerupTime = 0;
+  let score = 0;
+  let highScore = parseInt(localStorage.getItem("highScore") || "0", 10);
+  highScoreEl.textContent = highScore;
+  let lives = 3;
+  let level = 1;
+
+  let bulletSpeed = 4;
+  let rocketSpeed = 10;
 
   let shieldActive = false;
   let doublePointsActive = false;
   let speedBoostActive = false;
   let freezeBulletsActive = false;
+
   let freezeTimeout;
+  let isPaused = false;
 
-  highScoreEl.textContent = highScore;
+  let lastSpawnBulletTime = 0;
+  let lastSpawnPowerupTime = 0;
+  let lastLevelUpScore = 0;
 
-  function updateScore() {
-    scoreEl.textContent = score;
-    levelEl.textContent = level;
-    livesEl.textContent = lives;
+  // Show start screen, wait for user to start
+  function startGame() {
+    startScreen.style.display = "none";
+    resetGame();
+    bgMusic.volume = 0.3;
+    bgMusic.play();
+    requestAnimationFrame(gameLoop);
   }
 
-  function spawnBullet() {
-    const bullet = document.createElement("div");
-    bullet.className = "bullet";
-    const x = Math.random() * (window.innerWidth - 10);
-    bullet.style.left = x + "px";
-    bullet.style.top = "0px";
-    gameArea.appendChild(bullet);
-    bullets.push({ el: bullet, x, y: 0 });
-  }
+  startScreen.addEventListener("click", startGame);
+  startScreen.addEventListener("touchstart", e => {
+    e.preventDefault();
+    startGame();
+  }, {passive: false});
 
-  function showPowerupNotification(text) {
-    powerupNote.textContent = text;
-    setTimeout(() => {
-      if (powerupNote.textContent === text) powerupNote.textContent = "";
-    }, 3000);
-  }
-
-  const powerupTypes = [
-    {
-      name: "Shield",
-      class: "shield",
-      activate() {
-        shieldActive = true;
-        showPowerupNotification("Shield Activated!");
-        powerupSound.play();
-        setTimeout(() => {
-          shieldActive = false;
-          showPowerupNotification("Shield Wore Off");
-        }, 5000);
-        return true;
-      }
-    },
-    {
-      name: "Double Points",
-      class: "points",
-      activate() {
-        if (doublePointsActive) return false;
-        doublePointsActive = true;
-        showPowerupNotification("Double Points!");
-        powerupSound.play();
-        setTimeout(() => {
-          doublePointsActive = false;
-          showPowerupNotification("Double Points Ended");
-        }, 10000);
-        return true;
-      }
-    },
-    {
-      name: "Speed Boost",
-      class: "speed",
-      activate() {
-        if (speedBoostActive) return false;
-        rocketSpeed = 18;
-        speedBoostActive = true;
-        showPowerupNotification("Speed Boost!");
-        powerupSound.play();
-        setTimeout(() => {
-          rocketSpeed = 10;
-          speedBoostActive = false;
-          showPowerupNotification("Speed Normal");
-        }, 6000);
-        return true;
-      }
-    },
-    {
-      name: "Freeze Bullets",
-      class: "freeze",
-      activate() {
-        if (freezeBulletsActive) return false;
-        freezeBulletsActive = true;
-        showPowerupNotification("Bullets Frozen!");
-        powerupSound.play();
-        freezeTimeout = setTimeout(() => {
-          freezeBulletsActive = false;
-          showPowerupNotification("Bullets Unfrozen");
-        }, 4000);
-        return true;
-      }
-    },
-    {
-      name: "Extra Life",
-      class: "life",
-      activate() {
-        lives++;
-        showPowerupNotification("+1 Life");
-        powerupSound.play();
-        updateScore();
-        return true;
-      }
-    }
-  ];
-
-  function spawnPowerup() {
-    const type = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
-    const p = document.createElement("div");
-    p.classList.add("powerup", type.class);
-    const x = Math.random() * (window.innerWidth - 22);
-    p.style.left = x + "px";
-    p.style.top = "0px";
-    gameArea.appendChild(p);
-    powerups.push({ el: p, type, x, y: 0 });
-  }
-
+  // Pixel trail creation
   function createTrail() {
     const trail = document.createElement("div");
     trail.className = "trail";
-    trail.style.left = rocket.offsetLeft + rocket.offsetWidth / 2 - 4 + "px";
-    trail.style.top = rocket.offsetTop + rocket.offsetHeight - 4 + "px";
-    gameArea.appendChild(trail);
-    setTimeout(() => trail.remove(), 600);
+    trail.style.left = (rocket.offsetLeft + rocket.offsetWidth / 2 - 3) + "px";
+    trail.style.top = (rocket.offsetTop + rocket.offsetHeight - 10) + "px";
+    document.getElementById("gameArea").appendChild(trail);
+    setTimeout(() => trail.remove(), 300);
   }
 
   function rectsIntersect(r1, r2) {
@@ -344,6 +359,16 @@
     createTrail();
   }
 
+  function spawnBullet() {
+    if (freezeBulletsActive) return;
+    const bulletEl = document.createElement("div");
+    bulletEl.className = "bullet";
+    bulletEl.style.left = (Math.random() * (window.innerWidth - 8)) + "px";
+    bulletEl.style.top = "-20px";
+    document.getElementById("gameArea").appendChild(bulletEl);
+    bullets.push({el: bulletEl, y: -20});
+  }
+
   function moveBullets() {
     bullets.forEach((b, i) => {
       if (freezeBulletsActive) return;
@@ -356,7 +381,6 @@
       } else {
         b.el.style.top = b.y + "px";
 
-        // Collision with rocket
         const rocketRect = rocket.getBoundingClientRect();
         const bulletRect = b.el.getBoundingClientRect();
         if (rectsIntersect(rocketRect, bulletRect)) {
@@ -377,6 +401,86 @@
     });
   }
 
+  // Powerup types and activation logic
+  const powerupTypes = {
+    shield: {
+      class: "shield",
+      activate() {
+        shieldActive = true;
+        showPowerupNotification("Shield Activated!");
+        powerupSound.play();
+        return true;
+      }
+    },
+    points: {
+      class: "points",
+      activate() {
+        score += 10;
+        updateScore();
+        showPowerupNotification("+10 Points!");
+        powerupSound.play();
+        return true;
+      }
+    },
+    speed: {
+      class: "speed",
+      activate() {
+        speedBoostActive = true;
+        rocketSpeed = 18;
+        showPowerupNotification("Speed Boost!");
+        powerupSound.play();
+        setTimeout(() => {
+          speedBoostActive = false;
+          rocketSpeed = 10;
+          showPowerupNotification("Speed Boost Ended");
+        }, 6000);
+        return true;
+      }
+    },
+    freeze: {
+      class: "freeze",
+      activate() {
+        freezeBulletsActive = true;
+        showPowerupNotification("Bullets Frozen!");
+        powerupSound.play();
+        clearTimeout(freezeTimeout);
+        freezeTimeout = setTimeout(() => {
+          freezeBulletsActive = false;
+          showPowerupNotification("Bullets Unfrozen");
+        }, 6000);
+        return true;
+      }
+    },
+    life: {
+      class: "life",
+      activate() {
+        lives++;
+        updateScore();
+        showPowerupNotification("Extra Life!");
+        powerupSound.play();
+        return true;
+      }
+    }
+  };
+
+  function spawnPowerup() {
+    const keys = Object.keys(powerupTypes);
+    const chosenKey = keys[Math.floor(Math.random() * keys.length)];
+    const ptype = powerupTypes[chosenKey];
+
+    const powerupEl = document.createElement("div");
+    powerupEl.className = "powerup " + ptype.class;
+    powerupEl.style.left = (Math.random() * (window.innerWidth - 20)) + "px";
+    powerupEl.style.top = "-30px";
+    document.getElementById("gameArea").appendChild(powerupEl);
+
+    powerups.push({
+      el: powerupEl,
+      y: -30,
+      type: ptype
+    });
+  }
+
   function movePowerups() {
     powerups.forEach((p, i) => {
       p.y += 2;
@@ -385,11 +489,9 @@
         powerups.splice(i, 1);
       } else {
         p.el.style.top = p.y + "px";
-        // Collision with rocket
         const rocketRect = rocket.getBoundingClientRect();
         const powerupRect = p.el.getBoundingClientRect();
         if (rectsIntersect(rocketRect, powerupRect)) {
-          // Activate powerup, if it returns true remove it
           if (p.type.activate()) {
             p.el.remove();
             powerups.splice(i, 1);
@@ -402,35 +504,42 @@
   function increaseLevel() {
     level++;
     bulletSpeed += 1;
-    showPowerupNotification("Level Up! Speed increased");
+    showPowerupNotification("LEVEL UP! Speed increased");
     updateScore();
   }
 
-  let lastLevelUpScore = 0;
+  function updateScore() {
+    scoreEl.textContent = score;
+    livesEl.textContent = lives;
+    levelEl.textContent = level;
+  }
+
+  function showPowerupNotification(text) {
+    powerupNote.textContent = text;
+    setTimeout(() => {
+      powerupNote.textContent = "";
+    }, 2500);
+  }
 
   function gameLoop(time) {
     if (isPaused) {
       requestAnimationFrame(gameLoop);
       return;
     }
-
     moveRocket();
     moveBullets();
     movePowerups();
 
-    // Spawn bullets every 600ms approx
     if (!lastSpawnBulletTime || time - lastSpawnBulletTime > 600) {
       spawnBullet();
       lastSpawnBulletTime = time;
     }
 
-    // Spawn powerups every 8000ms approx
     if (!lastSpawnPowerupTime || time - lastSpawnPowerupTime > 8000) {
       spawnPowerup();
       lastSpawnPowerupTime = time;
     }
 
-    // Level up every 25 points
     if (score - lastLevelUpScore >= 25) {
       lastLevelUpScore = score;
       increaseLevel();
@@ -440,7 +549,6 @@
   }
 
   function resetGame() {
-    // Remove bullets and powerups
     bullets.forEach(b => b.el.remove());
     bullets = [];
     powerups.forEach(p => p.el.remove());
@@ -459,6 +567,7 @@
 
     retryBtn.style.display = "none";
     pauseBtn.style.display = "inline-block";
+    pauseBtn.textContent = "PAUSE";
     isPaused = false;
 
     rocket.style.left = (window.innerWidth / 2 - rocket.offsetWidth / 2) + "px";
@@ -466,7 +575,6 @@
     powerupNote.textContent = "";
 
     bgMusic.currentTime = 0;
-    bgMusic.play();
   }
 
   function endGame() {
@@ -478,12 +586,16 @@
       highScore = score;
       localStorage.setItem("highScore", highScore);
       highScoreEl.textContent = highScore;
-      alert("New High Score: " + highScore);
+      alert("NEW HIGH SCORE: " + highScore);
     }
-    powerupNote.textContent = "Game Over! Press RESTART";
+    powerupNote.textContent = "GAME OVER! PRESS RESTART";
   }
 
-  retryBtn.addEventListener("click", resetGame);
+  retryBtn.addEventListener("click", () => {
+    resetGame();
+    bgMusic.play();
+    requestAnimationFrame(gameLoop);
+  });
 
   pauseBtn.addEventListener("click", () => {
     if (isPaused) {
@@ -497,7 +609,6 @@
     }
   });
 
-  // Keyboard controls
   window.addEventListener("keydown", e => {
     if (e.code === "ArrowLeft" || e.code === "KeyA") leftPressed = true;
     if (e.code === "ArrowRight" || e.code === "KeyD") rightPressed = true;
@@ -507,23 +618,13 @@
     if (e.code === "ArrowRight" || e.code === "KeyD") rightPressed = false;
   });
 
-  // Mobile controls
-  const leftBtn = document.getElementById("leftBtn");
-  const rightBtn = document.getElementById("rightBtn");
   leftBtn.addEventListener("touchstart", e => { e.preventDefault(); leftPressed = true; });
   leftBtn.addEventListener("touchend", e => { e.preventDefault(); leftPressed = false; });
   rightBtn.addEventListener("touchstart", e => { e.preventDefault(); rightPressed = true; });
   rightBtn.addEventListener("touchend", e => { e.preventDefault(); rightPressed = false; });
 
-  // Initialize position
+  // Initialize rocket position
   rocket.style.left = (window.innerWidth / 2 - rocket.offsetWidth / 2) + "px";
-
-  // Start music & game loop
-  bgMusic.volume = 0.3;
-  bgMusic.play();
-
-  updateScore();
-  requestAnimationFrame(gameLoop);
 
 })();
 </script>
