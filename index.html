@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rocket Dodge</title>
   <style>
     body {
@@ -11,6 +11,7 @@
       background: black;
       font-family: sans-serif;
       color: white;
+      user-select: none;
     }
     #gameArea {
       position: relative;
@@ -27,6 +28,25 @@
       left: 50%;
       transform: translateX(-50%);
       border-radius: 5px;
+      z-index: 10;
+      filter: drop-shadow(0 0 5px red);
+    }
+    .trail {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: orange;
+      border-radius: 50%;
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 9;
+      animation: fadeOut 0.6s forwards;
+    }
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        transform: scale(0);
+      }
     }
     .bullet {
       position: absolute;
@@ -34,35 +54,70 @@
       height: 20px;
       background: white;
       top: 0;
+      border-radius: 3px;
     }
     .powerup {
       position: absolute;
       width: 20px;
       height: 20px;
-      background: cyan;
       border-radius: 50%;
       top: 0;
+      filter: drop-shadow(0 0 4px cyan);
     }
+    /* Colors for each power-up type */
+    .powerup.slow { background: cyan; }
+    .powerup.life { background: green; }
+    .powerup.shield { background: blue; }
+    .powerup.double { background: gold; }
+    .powerup.speed { background: orange; }
+    .powerup.freeze { background: violet; }
+
     #scoreBoard {
       position: absolute;
       top: 10px;
       left: 10px;
       font-size: 18px;
-      z-index: 10;
+      z-index: 20;
+    }
+    #powerupNotification {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      font-weight: bold;
+      color: #0ff;
+      text-shadow: 0 0 6px #0ff;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
     }
     #pauseBtn {
       position: absolute;
       top: 10px;
       right: 10px;
-      z-index: 10;
+      z-index: 20;
       padding: 8px 16px;
       font-size: 16px;
+      cursor: pointer;
+    }
+    #retryBtn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 12px 24px;
+      font-size: 18px;
+      display: none;
+      z-index: 30;
+      cursor: pointer;
     }
     #controls {
       position: absolute;
       bottom: 60px;
       width: 100%;
-      z-index: 10;
+      z-index: 20;
       pointer-events: none;
     }
     .control-btn {
@@ -73,6 +128,9 @@
       border: none;
       border-radius: 10px;
       pointer-events: all;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
     }
     #leftBtn {
       position: absolute;
@@ -84,22 +142,13 @@
       right: 20px;
       bottom: 60px;
     }
-    #retryBtn {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 12px 24px;
-      font-size: 18px;
-      display: none;
-      z-index: 11;
-    }
   </style>
 </head>
 <body>
   <div id="gameArea">
     <div id="rocket"></div>
-    <div id="scoreBoard">Score: 0 | Lives: 3 | Level: 1 | High Score: 0</div>
+    <div id="scoreBoard">Score: 0 | Lives: 3 | Level: 1 | High Score: 0 | Shield: OFF</div>
+    <div id="powerupNotification"></div>
     <button id="pauseBtn">Pause</button>
     <button id="retryBtn">Retry</button>
     <div id="controls">
@@ -109,6 +158,7 @@
   </div>
 
   <audio id="hitSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+  <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2021/11/03/audio_0cc172cae9.mp3?filename=dark-techno-ambient-11209.mp3" loop></audio>
 
   <script>
     const gameArea = document.getElementById("gameArea");
@@ -116,7 +166,9 @@
     const scoreBoard = document.getElementById("scoreBoard");
     const pauseBtn = document.getElementById("pauseBtn");
     const retryBtn = document.getElementById("retryBtn");
+    const powerupNotification = document.getElementById("powerupNotification");
     const hitSound = document.getElementById("hitSound");
+    const bgMusic = document.getElementById("bgMusic");
 
     let bullets = [];
     let powerups = [];
@@ -129,28 +181,39 @@
     let leftPressed = false;
     let rightPressed = false;
     let isPaused = false;
+
+    // Powerup system
     let powerupActive = false;
     let powerupTimer = null;
-    let animationId;
+    let shieldActive = false;
+    let doublePointsActive = false;
+    let speedBoostActive = false;
+    let freezeBulletsActive = false;
 
-    function startGame() {
-      score = 0;
-      lives = 3;
-      level = 1;
-      bulletSpeed = 4;
-      isPaused = false;
-      bullets = [];
-      powerups = [];
-      rocket.style.left = "50%";
-      retryBtn.style.display = "none";
-      updateScore();
-      spawnBullet();
-      spawnPowerup();
-      animate();
+    let freezeTimeout = null;
+
+    // Rocket trail
+    function createTrail() {
+      const trail = document.createElement("div");
+      trail.classList.add("trail");
+      gameArea.appendChild(trail);
+      const r = rocket.getBoundingClientRect();
+      trail.style.left = r.left + r.width / 2 - 6 + "px";
+      trail.style.top = r.bottom - gameArea.getBoundingClientRect().top + "px";
+
+      setTimeout(() => trail.remove(), 600);
     }
 
     function updateScore() {
-      scoreBoard.textContent = `Score: ${score} | Lives: ${lives} | Level: ${level} | High Score: ${highScore}`;
+      scoreBoard.textContent = `Score: ${score} | Lives: ${lives} | Level: ${level} | High Score: ${highScore} | Shield: ${shieldActive ? 'ON' : 'OFF'}`;
+    }
+
+    function showPowerupNotification(text) {
+      powerupNotification.textContent = text;
+      powerupNotification.style.opacity = "1";
+      setTimeout(() => {
+        powerupNotification.style.opacity = "0";
+      }, 2000);
     }
 
     function spawnBullet() {
@@ -163,167 +226,328 @@
       gameArea.appendChild(bullet);
       bullets.push({ el: bullet, x: bullet.offsetLeft, y: 0 });
 
-      setTimeout(spawnBullet, 800 - level * 20);
+      setTimeout(() => {
+        if (!isPaused) spawnBullet();
+      }, Math.max(300, 800 - level * 20));
+    }
+
+    // Define powerup types
+    const powerupTypes = [
+      {
+        name: "Slow Bullets",
+        class: "slow",
+        activate() {
+          if (powerupActive) return false;
+          powerupActive = true;
+          bulletSpeed /= 2;
+          rocket.style.background = "yellow";
+          showPowerupNotification("Slow Bullets");
+          vibratePattern([100, 50, 100]);
+          setPowerupTimeout(5000, () => {
+            bulletSpeed *= 2;
+            rocket.style.background = shieldActive ? "blue" : "red";
+            powerupActive = false;
+          });
+          return true;
+        }
+      },
+      {
+        name: "Extra Life",
+        class: "life",
+        activate() {
+          lives++;
+          updateScore();
+          showPowerupNotification("Extra Life!");
+          vibratePattern([200, 100, 200]);
+          return false; // No powerupActive flag needed
+        }
+      },
+      {
+        name: "Shield",
+        class: "shield",
+        activate() {
+          if (shieldActive) return false;
+          shieldActive = true;
+          rocket.style.background = "blue";
+          showPowerupNotification("Shield Activated");
+          vibratePattern([100, 50, 100]);
+          setPowerupTimeout(7000, () => {
+            shieldActive = false;
+            rocket.style.background = powerupActive ? "yellow" : "red";
+            showPowerupNotification("Shield Expired");
+          });
+          updateScore();
+          return false;
+        }
+      },
+      {
+        name: "Double Points",
+        class: "double",
+        activate() {
+          if (doublePointsActive) return false;
+          doublePointsActive = true;
+          showPowerupNotification("Double Points!");
+          vibratePattern([300, 100, 300]);
+          setPowerupTimeout(7000, () => {
+            doublePointsActive = false;
+            showPowerupNotification("Double Points Ended");
+          });
+          return true;
+        }
+      },
+      {
+        name: "Speed Boost",
+        class: "speed",
+        activate() {
+          if (speedBoostActive) return false;
+          speedBoostActive = true;
+          rocketSpeed *= 1.5;
+          rocket.style.border = "2px solid orange";
+          showPowerupNotification("Speed Boost!");
+          vibratePattern([200, 200, 100]);
+          setPowerupTimeout(5000, () => {
+            speedBoostActive = false;
+            rocketSpeed /= 1.5;
+            rocket.style.border = "none";
+            showPowerupNotification("Speed Boost Ended");
+          });
+          return true;
+        }
+      },
+      {
+        name: "Bullet Freeze",
+        class: "freeze",
+        activate() {
+          if (freezeBulletsActive) return false;
+          freezeBulletsActive = true;
+          showPowerupNotification("Bullet Freeze!");
+          vibratePattern([100, 300, 100]);
+          if (freezeTimeout) clearTimeout(freezeTimeout);
+          freezeTimeout = setTimeout(() => {
+            freezeBulletsActive = false;
+            showPowerupNotification("Bullet Freeze Ended");
+          }, 4000);
+          return true;
+        }
+      }
+    ];
+
+    function setPowerupTimeout(duration, callback) {
+      if (powerupTimer) clearTimeout(powerupTimer);
+      powerupTimer = setTimeout(callback, duration);
     }
 
     function spawnPowerup() {
-      if (isPaused || powerupActive) return;
+      if (isPaused) return;
 
-      const powerup = document.createElement("div");
-      powerup.classList.add("powerup");
-      powerup.style.left = Math.random() * (window.innerWidth - 20) + "px";
-      gameArea.appendChild(powerup);
+      const pu = document.createElement("div");
+      const type = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
+      pu.classList.add("powerup", type.class);
+      pu.style.left = Math.random() * (window.innerWidth - 20) + "px";
+      pu.style.top = "0px";
+      gameArea.appendChild(pu);
+      powerups.push({ el: pu, x: pu.offsetLeft, y: 0, type });
 
-      powerups.push({ el: powerup, x: powerup.offsetLeft, y: 0 });
-
-      setTimeout(spawnPowerup, 8000 + Math.random() * 8000);
+      setTimeout(() => {
+        if (!isPaused) spawnPowerup();
+      }, 7000 + Math.random() * 7000);
     }
 
-    function activatePowerup() {
-      if (powerupActive) return;
-      powerupActive = true;
-      navigator.vibrate?.([100, 50, 100]);
-      const originalSpeed = bulletSpeed;
-      bulletSpeed = 2;
-      rocket.style.background = "yellow";
-
-      if (powerupTimer) clearTimeout(powerupTimer);
-      powerupTimer = setTimeout(() => {
-        bulletSpeed = originalSpeed;
-        rocket.style.background = "red";
-        powerupActive = false;
-      }, 5000);
-    }
-
-    function animate() {
-      if (isPaused) {
-        cancelAnimationFrame(animationId);
-        return;
+    function vibratePattern(pattern) {
+      if ("vibrate" in navigator) {
+        navigator.vibrate(pattern);
       }
+    }
 
+    // Reset game state
+    function resetGame() {
+      // Clear bullets and powerups from DOM and arrays
+      bullets.forEach(b => b.el.remove());
+      bullets = [];
+      powerups.forEach(p => p.el.remove());
+      powerups = [];
+
+      score = 0;
+      level = 1;
+      lives = 3;
+      bulletSpeed = 4;
+      rocketSpeed = 10;
+      powerupActive = false;
+      shieldActive = false;
+      doublePointsActive = false;
+      speedBoostActive = false;
+      freezeBulletsActive = false;
+      powerupNotification.style.opacity = "0";
+      rocket.style.background = "red";
+      rocket.style.border = "none";
+
+      updateScore();
+      retryBtn.style.display = "none";
+
+      spawnBullet();
+      spawnPowerup();
+      if (isPaused) togglePause();
+    }
+
+    // Handle collisions
+    function rectsIntersect(a, b) {
+      return !(
+        a.right < b.left ||
+        a.left > b.right ||
+        a.bottom < b.top ||
+        a.top > b.bottom
+      );
+    }
+
+    // Main game loop
+    function gameLoop() {
+      if (isPaused) return;
+
+      // Move bullets
       bullets.forEach((b, i) => {
-        b.y += bulletSpeed;
+        if (!freezeBulletsActive) b.y += bulletSpeed;
         b.el.style.top = b.y + "px";
-
-        const r = rocket.getBoundingClientRect();
-        const br = b.el.getBoundingClientRect();
-
-        if (
-          !powerupActive &&
-          br.top < r.bottom &&
-          br.bottom > r.top &&
-          br.left < r.right &&
-          br.right > r.left
-        ) {
-          gameArea.removeChild(b.el);
-          bullets.splice(i, 1);
-          lives--;
-          hitSound.currentTime = 0;
-          hitSound.play();
-          navigator.vibrate?.(100);
-          updateScore();
-          if (lives <= 0) {
-            gameOver();
-            return;
-          }
-        }
 
         if (b.y > window.innerHeight) {
           b.el.remove();
           bullets.splice(i, 1);
-          score++;
-          if (score % 10 === 0) {
+          score += doublePointsActive ? 2 : 1;
+          updateScore();
+          if (score % 20 === 0) {
             level++;
             bulletSpeed += 0.5;
           }
-          updateScore();
+        } else {
+          // Check collision with rocket
+          const rocketRect = rocket.getBoundingClientRect();
+          const bulletRect = b.el.getBoundingClientRect();
+          if (rectsIntersect(rocketRect, bulletRect)) {
+            if (shieldActive) {
+              shieldActive = false;
+              rocket.style.background = powerupActive ? "yellow" : "red";
+              updateScore();
+              b.el.remove();
+              bullets.splice(i, 1);
+              showPowerupNotification("Shield Used!");
+            } else {
+              lives--;
+              hitSound.play();
+              updateScore();
+              b.el.remove();
+              bullets.splice(i, 1);
+              if (lives <= 0) {
+                endGame();
+              }
+            }
+          }
         }
       });
 
+      // Move powerups
       powerups.forEach((p, i) => {
-        p.y += bulletSpeed / 2;
+        p.y += 2;
         p.el.style.top = p.y + "px";
-
-        const r = rocket.getBoundingClientRect();
-        const pr = p.el.getBoundingClientRect();
-
-        if (
-          pr.top < r.bottom &&
-          pr.bottom > r.top &&
-          pr.left < r.right &&
-          pr.right > r.left
-        ) {
-          activatePowerup();
-          p.el.remove();
-          powerups.splice(i, 1);
-        }
 
         if (p.y > window.innerHeight) {
           p.el.remove();
           powerups.splice(i, 1);
+        } else {
+          // Check collision with rocket
+          const rocketRect = rocket.getBoundingClientRect();
+          const powerupRect = p.el.getBoundingClientRect();
+          if (rectsIntersect(rocketRect, powerupRect)) {
+            const activated = p.type.activate();
+            if (activated === true) {
+              powerupActive = true;
+            }
+            p.el.remove();
+            powerups.splice(i, 1);
+          }
         }
       });
 
-      const rocketX = rocket.offsetLeft;
-      if (leftPressed && rocketX > 0) {
-        rocket.style.left = rocketX - rocketSpeed + "px";
+      // Move rocket if keys pressed
+      const rocketLeft = rocket.offsetLeft;
+      if (leftPressed && rocketLeft > 0) {
+        rocket.style.left = rocketLeft - rocketSpeed + "px";
+        createTrail();
       }
-      if (rightPressed && rocketX < window.innerWidth - rocket.offsetWidth) {
-        rocket.style.left = rocketX + rocketSpeed + "px";
+      if (rightPressed && rocketLeft < window.innerWidth - rocket.offsetWidth) {
+        rocket.style.left = rocketLeft + rocketSpeed + "px";
+        createTrail();
       }
 
-      animationId = requestAnimationFrame(animate);
+      requestAnimationFrame(gameLoop);
     }
 
-    function gameOver() {
-      cancelAnimationFrame(animationId);
-      navigator.vibrate?.([200, 100, 200]);
-      retryBtn.style.display = "block";
+    // End game function
+    function endGame() {
       if (score > highScore) {
         highScore = score;
         localStorage.setItem("highScore", highScore);
       }
-    }
-
-    function pauseGame() {
+      updateScore();
+      retryBtn.style.display = "block";
       isPaused = true;
-      pauseBtn.textContent = "Resume";
-      navigator.vibrate?.(50);
+      bgMusic.pause();
     }
 
-    function resumeGame() {
-      isPaused = false;
-      pauseBtn.textContent = "Pause";
-      navigator.vibrate?.(50);
-      animate();
+    // Pause toggle
+    function togglePause() {
+      if (isPaused) {
+        isPaused = false;
+        pauseBtn.textContent = "Pause";
+        bgMusic.play();
+        requestAnimationFrame(gameLoop);
+      } else {
+        isPaused = true;
+        pauseBtn.textContent = "Resume";
+        bgMusic.pause();
+      }
     }
 
-    pauseBtn.addEventListener("click", () => {
-      isPaused ? resumeGame() : pauseGame();
-    });
-
-    retryBtn.addEventListener("click", () => {
-      startGame();
-    });
-
-    // Desktop controls
+    // Event listeners
     window.addEventListener("keydown", (e) => {
       if (e.key === "ArrowLeft") leftPressed = true;
       if (e.key === "ArrowRight") rightPressed = true;
+      if (e.key === "p") togglePause();
     });
     window.addEventListener("keyup", (e) => {
       if (e.key === "ArrowLeft") leftPressed = false;
       if (e.key === "ArrowRight") rightPressed = false;
     });
 
-    // Mobile buttons
-    document.getElementById("leftBtn").addEventListener("touchstart", () => (leftPressed = true));
-    document.getElementById("leftBtn").addEventListener("touchend", () => (leftPressed = false));
-    document.getElementById("rightBtn").addEventListener("touchstart", () => (rightPressed = true));
-    document.getElementById("rightBtn").addEventListener("touchend", () => (rightPressed = false));
+    pauseBtn.addEventListener("click", togglePause);
 
-    startGame();
+    retryBtn.addEventListener("click", () => {
+      resetGame();
+      bgMusic.play();
+    });
+
+    // Mobile buttons
+    document.getElementById("leftBtn").addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      leftPressed = true;
+    });
+    document.getElementById("leftBtn").addEventListener("touchend", (e) => {
+      e.preventDefault();
+      leftPressed = false;
+    });
+    document.getElementById("rightBtn").addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      rightPressed = true;
+    });
+    document.getElementById("rightBtn").addEventListener("touchend", (e) => {
+      e.preventDefault();
+      rightPressed = false;
+    });
+
+    // Start the game
+    resetGame();
+    bgMusic.volume = 0.3;
+    bgMusic.play();
   </script>
 </body>
 </html>
+
 
