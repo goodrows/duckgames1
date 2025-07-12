@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rocket Dodge</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -21,6 +21,7 @@
       top: 10px; right: 10px; font-size: 18px; padding: 8px 12px;
       background: rgba(255,255,255,0.2); color: white; border-radius: 6px;
       cursor: pointer;
+      user-select: none;
     }
     #leftBtn, #rightBtn {
       bottom: 20px; width: 80px; height: 80px;
@@ -210,6 +211,7 @@
       }
     }
 
+    let animationId;
     function loop() {
       if (paused) return;
       ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -218,7 +220,7 @@
       drawBullets();
       drawPowerups();
       drawHUD();
-      requestAnimationFrame(loop);
+      animationId = requestAnimationFrame(loop);
     }
 
     function startGame() {
@@ -234,30 +236,47 @@
       resetRocket();
       bgMusic.currentTime = 0;
       bgMusic.play();
+      cancelAnimationFrame(animationId);
       loop();
     }
 
+    pauseBtn.addEventListener("click", () => {
+      paused = !paused;
+      if (!paused) loop();
+      pauseBtn.textContent = paused ? "▶️" : "⏸";
+      if (paused) bgMusic.pause(); else bgMusic.play();
+    });
+
+    // Prevent rapid pause toggling by tracking keydown and keyup for P
+    let pKeyDown = false;
     document.addEventListener("keydown", e => {
       if (e.key === "ArrowLeft") leftPressed = true;
       if (e.key === "ArrowRight") rightPressed = true;
-      if (e.key === "p") paused = !paused && loop();
+      if (e.key.toLowerCase() === "p" && !pKeyDown) {
+        pKeyDown = true;
+        paused = !paused;
+        if (!paused) loop();
+        pauseBtn.textContent = paused ? "▶️" : "⏸";
+        if (paused) bgMusic.pause(); else bgMusic.play();
+      }
     });
     document.addEventListener("keyup", e => {
       if (e.key === "ArrowLeft") leftPressed = false;
       if (e.key === "ArrowRight") rightPressed = false;
+      if (e.key.toLowerCase() === "p") pKeyDown = false;
     });
+
     leftBtn.addEventListener("touchstart", () => leftPressed = true);
     leftBtn.addEventListener("touchend", () => leftPressed = false);
     rightBtn.addEventListener("touchstart", () => rightPressed = true);
     rightBtn.addEventListener("touchend", () => rightPressed = false);
-    pauseBtn.addEventListener("click", () => paused = !paused && loop());
+
     window.addEventListener("resize", () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       resetRocket();
     });
 
-    // start game
     startGame();
   </script>
 </body>
