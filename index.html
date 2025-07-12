@@ -1,283 +1,444 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rocket Dodge</title>
+  <meta charset="UTF-8">
+  <title>Rocket Dodger</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
-    canvas { display: block; background: #111; }
-    #messageBox, #pauseBtn, #leftBtn, #rightBtn {
-      position: absolute; z-index: 10;
-    }
-    #messageBox {
-      top: 60px; left: 50%; transform: translateX(-50%);
-      background: rgba(255,255,255,0.15); color: cyan;
-      font-size: 20px; padding: 8px 16px; border-radius: 6px;
-      display: none;
-    }
-    #pauseBtn {
-      top: 10px; right: 10px; font-size: 18px; padding: 8px 12px;
-      background: rgba(255,255,255,0.2); color: white; border-radius: 6px;
-      cursor: pointer;
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: #000;
+      color: white;
       user-select: none;
     }
-    #leftBtn, #rightBtn {
-      bottom: 20px; width: 80px; height: 80px;
-      background: rgba(255,255,255,0.2); border-radius: 50%;
-      font-size: 30px; text-align: center; line-height: 80px;
-      user-select: none; color: white; cursor: pointer;
+    #gameArea {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(#111, #000);
     }
-    #leftBtn { left: 10px; }
-    #rightBtn { right: 10px; }
+    #rocket {
+      position: absolute;
+      width: 40px;
+      height: 60px;
+      background: red;
+      bottom: 20px;
+      border-radius: 10px;
+    }
+    .bullet {
+      position: absolute;
+      width: 10px;
+      height: 20px;
+      background: yellow;
+      border-radius: 3px;
+    }
+    .powerup {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #fff;
+    }
+    .shield { background: cyan; }
+    .points { background: lime; }
+    .speed { background: orange; }
+    .freeze { background: blue; }
+    .life { background: pink; }
+
+    #scoreboard {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 18px;
+    }
+    #buttons {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    #buttons button {
+      font-size: 18px;
+      margin: 0 10px;
+      padding: 10px 20px;
+    }
+    #mobileControls {
+      position: absolute;
+      bottom: 60px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+    #mobileControls button {
+      width: 80px;
+      height: 80px;
+      font-size: 24px;
+      opacity: 0.4;
+    }
+    .trail {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    #powerupNote {
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      color: yellow;
+      text-shadow: 0 0 5px #fff;
+    }
   </style>
 </head>
 <body>
-  <button id="pauseBtn">⏸</button>
-  <div id="leftBtn">⬅️</div>
-  <div id="rightBtn">➡️</div>
-  <div id="messageBox"></div>
-  <canvas id="gameCanvas"></canvas>
+<div id="gameArea">
+  <div id="rocket"></div>
+  <div id="scoreboard">
+    Score: <span id="score">0</span> |
+    High: <span id="highScore">0</span> |
+    Lives: <span id="lives">3</span> |
+    Level: <span id="level">1</span>
+  </div>
+  <div id="powerupNote"></div>
+  <div id="buttons">
+    <button id="retryBtn" style="display:none;">Retry</button>
+    <button id="pauseBtn">Pause</button>
+  </div>
+  <div id="mobileControls">
+    <button id="leftBtn">⬅️</button>
+    <button id="rightBtn">➡️</button>
+  </div>
+</div>
 
-  <!-- Audio -->
-  <audio id="bgMusic" loop src="https://cdn.pixabay.com/download/audio/2021/09/09/audio_3c287814ef.mp3"></audio>
-  <audio id="bulletSound" src="https://cdn.pixabay.com/download/audio/2021/10/21/audio_2a7e51ef4e.mp3"></audio>
-  <audio id="powerupSound" src="https://cdn.pixabay.com/download/audio/2021/10/21/audio_2a7e51ef4e.mp3"></audio>
-  <audio id="gameOverSound" src="https://cdn.pixabay.com/download/audio/2022/03/21/audio_127f20a1e6.mp3"></audio>
+<audio id="bgMusic" loop src="https://cdn.pixabay.com/audio/2022/03/15/audio_bab590d1a7.mp3"></audio>
+<audio id="powerupSound" src="https://cdn.pixabay.com/audio/2022/03/24/audio_c1c86c017f.mp3"></audio>
+<audio id="hitSound" src="https://cdn.pixabay.com/audio/2022/03/21/audio_127f20a1e6.mp3"></audio>
 
-  <script>
-    const canvas = document.getElementById("gameCanvas"), ctx = canvas.getContext("2d");
-    const pauseBtn = document.getElementById("pauseBtn"), msgBox = document.getElementById("messageBox");
-    const leftBtn = document.getElementById("leftBtn"), rightBtn = document.getElementById("rightBtn");
+<script>
+(() => {
+  const rocket = document.getElementById("rocket");
+  const gameArea = document.getElementById("gameArea");
+  const scoreEl = document.getElementById("score");
+  const highScoreEl = document.getElementById("highScore");
+  const livesEl = document.getElementById("lives");
+  const levelEl = document.getElementById("level");
+  const retryBtn = document.getElementById("retryBtn");
+  const pauseBtn = document.getElementById("pauseBtn");
+  const powerupNote = document.getElementById("powerupNote");
 
-    const bgMusic = document.getElementById("bgMusic"),
-          bulletSound = document.getElementById("bulletSound"),
-          powerupSound = document.getElementById("powerupSound"),
-          gameOverSound = document.getElementById("gameOverSound");
+  const bgMusic = document.getElementById("bgMusic");
+  const powerupSound = document.getElementById("powerupSound");
+  const hitSound = document.getElementById("hitSound");
 
-    let rocket = { x:0, y:0, width:30, height:40, speed:6, color:"red", trail:[] };
-    let bullets = [], powerups = [];
-    let score = 0, highScore = localStorage.getItem("highScore")||0, level = 1;
-    let bulletSpeed = 4, lives = 3;
-    let paused = false, leftPressed = false, rightPressed = false;
-    let currentPowerup = null, powerupTimer = 0;
+  let bullets = [];
+  let powerups = [];
+  let score = 0;
+  let level = 1;
+  let lives = 3;
+  let highScore = localStorage.getItem("highScore") || 0;
+  let bulletSpeed = 4;
+  let rocketSpeed = 10;
+  let leftPressed = false;
+  let rightPressed = false;
+  let isPaused = false;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+  let lastSpawnBulletTime = 0;
+  let lastSpawnPowerupTime = 0;
 
-    function resetRocket() {
-      rocket.trail = [];
-      rocket.x = canvas.width/2 - rocket.width/2;
-      rocket.y = canvas.height - rocket.height - 20;
-    }
+  let shieldActive = false;
+  let doublePointsActive = false;
+  let speedBoostActive = false;
+  let freezeBulletsActive = false;
+  let freezeTimeout;
 
-    function showMessage(text, dur=2000) {
-      msgBox.textContent = text;
-      msgBox.style.display = "block";
-      setTimeout(() => msgBox.style.display = "none", dur);
-    }
+  highScoreEl.textContent = highScore;
 
-    function drawRocket() {
-      rocket.trail.push({ x: rocket.x + rocket.width/2, y: rocket.y + rocket.height });
-      if (rocket.trail.length > 20) rocket.trail.shift();
-      rocket.trail.forEach((t, i) => {
-        ctx.fillStyle = `rgba(255,100,0,${i/rocket.trail.length})`;
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, 3, 0, 2*Math.PI);
-        ctx.fill();
-      });
-      ctx.fillStyle = rocket.color;
-      ctx.fillRect(rocket.x, rocket.y, rocket.width, rocket.height);
-    }
+  function updateScore() {
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    livesEl.textContent = lives;
+  }
 
-    function drawBullets() {
-      ctx.fillStyle = "white";
-      bullets.forEach(b => ctx.fillRect(b.x, b.y, b.size, b.size));
-    }
+  function spawnBullet() {
+    const bullet = document.createElement("div");
+    bullet.className = "bullet";
+    const x = Math.random() * (window.innerWidth - 10);
+    bullet.style.left = x + "px";
+    bullet.style.top = "0px";
+    gameArea.appendChild(bullet);
+    bullets.push({ el: bullet, x, y: 0 });
+  }
 
-    function drawPowerups() {
-      powerups.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x + p.size/2, p.y + p.size/2, p.size/2, 0, 2*Math.PI);
-        ctx.fill();
-      });
-    }
+  function showPowerupNotification(text) {
+    powerupNote.textContent = text;
+    setTimeout(() => {
+      if (powerupNote.textContent === text) powerupNote.textContent = "";
+    }, 3000);
+  }
 
-    function drawHUD() {
-      ctx.fillStyle = "white";
-      ctx.font = "18px Segoe UI";
-      ctx.fillText("Score: " + score, 10, 30);
-      ctx.fillText("High: " + highScore, 10, 50);
-      ctx.fillText("Level: " + level, 10, 70);
-      ctx.fillText("Lives: " + lives, 10, 90);
-      if (currentPowerup) {
-        ctx.fillStyle = "cyan";
-        ctx.fillText("Powerup: " + currentPowerup.toUpperCase(), canvas.width/2 - 60, 30);
+  const powerupTypes = [
+    {
+      name: "Shield",
+      class: "shield",
+      activate() {
+        shieldActive = true;
+        showPowerupNotification("Shield Activated!");
+        powerupSound.play();
+        setTimeout(() => {
+          shieldActive = false;
+          showPowerupNotification("Shield Wore Off");
+        }, 5000);
+        return true;
+      }
+    },
+    {
+      name: "Double Points",
+      class: "points",
+      activate() {
+        if (doublePointsActive) return false;
+        doublePointsActive = true;
+        showPowerupNotification("Double Points!");
+        powerupSound.play();
+        setTimeout(() => {
+          doublePointsActive = false;
+          showPowerupNotification("Double Points Ended");
+        }, 10000);
+        return true;
+      }
+    },
+    {
+      name: "Speed Boost",
+      class: "speed",
+      activate() {
+        if (speedBoostActive) return false;
+        rocketSpeed = 18;
+        speedBoostActive = true;
+        showPowerupNotification("Speed Boost!");
+        powerupSound.play();
+        setTimeout(() => {
+          rocketSpeed = 10;
+          speedBoostActive = false;
+          showPowerupNotification("Speed Normal");
+        }, 6000);
+        return true;
+      }
+    },
+    {
+      name: "Freeze Bullets",
+      class: "freeze",
+      activate() {
+        if (freezeBulletsActive) return false;
+        freezeBulletsActive = true;
+        showPowerupNotification("Bullets Frozen!");
+        powerupSound.play();
+        freezeTimeout = setTimeout(() => {
+          freezeBulletsActive = false;
+          showPowerupNotification("Bullets Unfrozen");
+        }, 4000);
+        return true;
+      }
+    },
+    {
+      name: "Extra Life",
+      class: "life",
+      activate() {
+        lives++;
+        showPowerupNotification("+1 Life");
+        powerupSound.play();
+        updateScore();
+        return true;
       }
     }
+  ];
 
-    function spawnBullet() {
-      bullets.push({ x: Math.random()*(canvas.width-20), y: -20, size: 20 });
-      bulletSound.currentTime = 0;
-      bulletSound.play();
+  function spawnPowerup() {
+    const type = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
+    const p = document.createElement("div");
+    p.classList.add("powerup", type.class);
+    const x = Math.random() * (window.innerWidth - 22);
+    p.style.left = x + "px";
+    p.style.top = "0px";
+    gameArea.appendChild(p);
+    powerups.push({ el: p, type, x, y: 0 });
+  }
+
+  function createTrail() {
+    const trail = document.createElement("div");
+    trail.className = "trail";
+    trail.style.left = rocket.offsetLeft + rocket.offsetWidth / 2 - 4 + "px";
+    trail.style.top = rocket.offsetTop + rocket.offsetHeight - 4 + "px";
+    gameArea.appendChild(trail);
+    setTimeout(() => trail.remove(), 600);
+  }
+
+  function rectsIntersect(r1, r2) {
+    return !(r2.left > r1.right || r2.right < r1.left || r2.top > r1.bottom || r2.bottom < r1.top);
+  }
+
+  function resetGame() {
+    bullets.forEach(b => b.el.remove());
+    bullets = [];
+    powerups.forEach(p => p.el.remove());
+    powerups = [];
+    score = 0;
+    level = 1;
+    lives = 3;
+    bulletSpeed = 4;
+    rocketSpeed = 10;
+    shieldActive = false;
+    doublePointsActive = false;
+    speedBoostActive = false;
+    freezeBulletsActive = false;
+    lastSpawnBulletTime = 0;
+    lastSpawnPowerupTime = 0;
+    updateScore();
+    retryBtn.style.display = "none";
+    pauseBtn.style.display = "inline-block";
+    isPaused = false;
+    bgMusic.currentTime = 0;
+    bgMusic.play();
+  }
+
+  function endGame() {
+    isPaused = true;
+    retryBtn.style.display = "inline-block";
+    pauseBtn.style.display = "none";
+    bgMusic.pause();
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem("highScore", highScore);
+      alert(`New High Score: ${highScore}!`);
+    } else {
+      alert(`Game Over! Score: ${score}. High Score: ${highScore}`);
     }
+  }
 
-    function spawnPowerup() {
-      const types = ["shield","slow","double","freeze","nuke"];
-      const type = types[Math.floor(Math.random()*types.length)];
-      const colors = { shield:"cyan", slow:"blue", double:"yellow", freeze:"lime", nuke:"orange" };
-      powerups.push({ x: Math.random()*(canvas.width-20), y: -20, size: 20, type, color: colors[type] });
-    }
+  function gameLoop(timestamp) {
+    if (!lastSpawnBulletTime) lastSpawnBulletTime = timestamp;
+    if (!lastSpawnPowerupTime) lastSpawnPowerupTime = timestamp;
 
-    function activatePowerup(type) {
-      currentPowerup = type;
-      powerupTimer = 300;
-      powerupSound.currentTime = 0;
-      powerupSound.play();
-      showMessage("Powerup: " + type.toUpperCase());
-      if (type === "nuke" || type === "freeze") bullets = [];
-      if (type === "nuke") level++;
-    }
-
-    function endGame() {
-      paused = true;
-      bgMusic.pause();
-      gameOverSound.currentTime = 0;
-      gameOverSound.play();
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem("highScore", highScore);
+    if (!isPaused) {
+      const spawnInterval = Math.max(150, 800 - level * 30);
+      if (timestamp - lastSpawnBulletTime > spawnInterval) {
+        spawnBullet();
+        lastSpawnBulletTime = timestamp;
       }
-      showMessage("Game Over! Score: " + score, 3000);
-      setTimeout(startGame, 3000);
-    }
 
-    function update() {
-      if (leftPressed) rocket.x -= rocket.speed;
-      if (rightPressed) rocket.x += rocket.speed;
-      rocket.x = Math.max(0, Math.min(canvas.width - rocket.width, rocket.x));
+      if (timestamp - lastSpawnPowerupTime > 8000 + Math.random() * 5000) {
+        spawnPowerup();
+        lastSpawnPowerupTime = timestamp;
+      }
 
-      bullets.forEach(b => b.y += bulletSpeed);
-      bullets = bullets.filter(b => b.y < canvas.height);
+      bullets.forEach((b, i) => {
+        if (!freezeBulletsActive) b.y += bulletSpeed;
+        b.el.style.top = b.y + "px";
 
-      powerups.forEach(p => p.y += 2);
-      powerups = powerups.filter(p => p.y < canvas.height);
-
-      if (currentPowerup !== "shield") {
-        bullets.forEach(b => {
-          if (rocket.x < b.x + b.size &&
-              rocket.x + rocket.width > b.x &&
-              rocket.y < b.y + b.size &&
-              rocket.y + rocket.height > b.y) {
-            if (--lives <= 0) endGame();
-            else {
-              showMessage("Life lost! Lives: " + lives, 1500);
-              bullets = [];
+        if (b.y > window.innerHeight) {
+          b.el.remove();
+          bullets.splice(i, 1);
+          score += doublePointsActive ? 2 : 1;
+          updateScore();
+          if (score % 20 === 0) {
+            level++;
+            bulletSpeed += 0.5;
+          }
+        } else {
+          const rocketRect = rocket.getBoundingClientRect();
+          const bulletRect = b.el.getBoundingClientRect();
+          if (rectsIntersect(rocketRect, bulletRect)) {
+            if (shieldActive) {
+              shieldActive = false;
+              showPowerupNotification("Shield Used!");
+              b.el.remove();
+              bullets.splice(i, 1);
+              updateScore();
+            } else {
+              lives--;
+              hitSound.play();
+              updateScore();
+              b.el.remove();
+              bullets.splice(i, 1);
+              if (lives <= 0) endGame();
             }
           }
-        });
-      }
-
-      powerups.every((p, i) => {
-        if (rocket.x < p.x + p.size &&
-            rocket.x + rocket.width > p.x &&
-            rocket.y < p.y + p.size &&
-            rocket.y + rocket.height > p.y) {
-          activatePowerup(p.type);
-          powerups.splice(i,1);
-          return false;
         }
-        return true;
       });
 
-      score++;
-      if (score % 100 === 0) {
-        level++;
-        bulletSpeed += 0.5;
+      powerups.forEach((p, i) => {
+        p.y += 2;
+        p.el.style.top = p.y + "px";
+        if (p.y > window.innerHeight) {
+          p.el.remove();
+          powerups.splice(i, 1);
+        } else {
+          const rocketRect = rocket.getBoundingClientRect();
+          const powerupRect = p.el.getBoundingClientRect();
+          if (rectsIntersect(rocketRect, powerupRect)) {
+            if (p.type.activate() === true) {}
+            p.el.remove();
+            powerups.splice(i, 1);
+          }
+        }
+      });
+
+      const rocketLeft = rocket.offsetLeft;
+      if (leftPressed && rocketLeft > 0) {
+        rocket.style.left = rocketLeft - rocketSpeed + "px";
+        createTrail();
       }
-
-      if (Math.random() < 0.03) spawnBullet();
-      if (Math.random() < 0.005) spawnPowerup();
-
-      if (powerupTimer > 0) {
-        powerupTimer--;
-        if (powerupTimer === 0) {
-          currentPowerup = null;
-          bulletSpeed = 4 + (level - 1) * 0.5;
-        } else if (currentPowerup === "slow") bulletSpeed = 1;
-        else if (currentPowerup === "double") score++;
+      if (rightPressed && rocketLeft < window.innerWidth - rocket.offsetWidth) {
+        rocket.style.left = rocketLeft + rocketSpeed + "px";
+        createTrail();
       }
     }
 
-    let animationId;
-    function loop() {
-      if (paused) return;
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      update();
-      drawRocket();
-      drawBullets();
-      drawPowerups();
-      drawHUD();
-      animationId = requestAnimationFrame(loop);
-    }
+    requestAnimationFrame(gameLoop);
+  }
 
-    function startGame() {
-      bullets = [];
-      powerups = [];
-      score = 0;
-      level = 1;
-      bulletSpeed = 4;
-      lives = 3;
-      currentPowerup = null;
-      powerupTimer = 0;
-      paused = false;
-      resetRocket();
-      bgMusic.currentTime = 0;
-      bgMusic.play();
-      cancelAnimationFrame(animationId);
-      loop();
-    }
+  window.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft") leftPressed = true;
+    if (e.key === "ArrowRight") rightPressed = true;
+  });
+  window.addEventListener("keyup", e => {
+    if (e.key === "ArrowLeft") leftPressed = false;
+    if (e.key === "ArrowRight") rightPressed = false;
+  });
 
-    pauseBtn.addEventListener("click", () => {
-      paused = !paused;
-      if (!paused) loop();
-      pauseBtn.textContent = paused ? "▶️" : "⏸";
-      if (paused) bgMusic.pause(); else bgMusic.play();
-    });
+  document.getElementById("leftBtn").addEventListener("touchstart", e => {
+    e.preventDefault(); leftPressed = true;
+  });
+  document.getElementById("leftBtn").addEventListener("touchend", e => {
+    e.preventDefault(); leftPressed = false;
+  });
+  document.getElementById("rightBtn").addEventListener("touchstart", e => {
+    e.preventDefault(); rightPressed = true;
+  });
+  document.getElementById("rightBtn").addEventListener("touchend", e => {
+    e.preventDefault(); rightPressed = false;
+  });
 
-    // Prevent rapid pause toggling by tracking keydown and keyup for P
-    let pKeyDown = false;
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowLeft") leftPressed = true;
-      if (e.key === "ArrowRight") rightPressed = true;
-      if (e.key.toLowerCase() === "p" && !pKeyDown) {
-        pKeyDown = true;
-        paused = !paused;
-        if (!paused) loop();
-        pauseBtn.textContent = paused ? "▶️" : "⏸";
-        if (paused) bgMusic.pause(); else bgMusic.play();
-      }
-    });
-    document.addEventListener("keyup", e => {
-      if (e.key === "ArrowLeft") leftPressed = false;
-      if (e.key === "ArrowRight") rightPressed = false;
-      if (e.key.toLowerCase() === "p") pKeyDown = false;
-    });
+  retryBtn.addEventListener("click", resetGame);
+  pauseBtn.addEventListener("click", () => {
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? "Resume" : "Pause";
+    if (isPaused) bgMusic.pause(); else bgMusic.play();
+  });
 
-    leftBtn.addEventListener("touchstart", () => leftPressed = true);
-    leftBtn.addEventListener("touchend", () => leftPressed = false);
-    rightBtn.addEventListener("touchstart", () => rightPressed = true);
-    rightBtn.addEventListener("touchend", () => rightPressed = false);
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      resetRocket();
-    });
-
-    startGame();
-  </script>
+  rocket.style.left = (window.innerWidth / 2 - rocket.offsetWidth / 2) + "px";
+  updateScore();
+  bgMusic.volume = 0.3;
+  bgMusic.play();
+  requestAnimationFrame(gameLoop);
+})();
+</script>
 </body>
 </html>
