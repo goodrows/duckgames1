@@ -3,199 +3,268 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rocket Dodge</title>
+  <title>Rocket Dodge Game</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html { height: 100%; overflow: hidden; background: #000; color: white; font-family: sans-serif; }
-    canvas { background: #111; display: block; margin: 0 auto; }
+    html, body { height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
 
+    canvas { display: block; background: #111; }
+
+    #menu, #messageBox, #pauseBtn, #leftBtn, #rightBtn {
+      position: absolute; z-index: 10;
+    }
+    #menu {
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.8);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; color: white;
+    }
+    #menu button {
+      font-size: 24px; padding: 12px 24px; margin: 10px;
+      border: none; background: #28a; color: white; border-radius: 6px;
+      cursor: pointer;
+    }
+    #messageBox {
+      top: 60px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,255,255,0.15); color: cyan;
+      font-size: 20px; padding: 8px 16px; border-radius: 6px;
+      display: none;
+    }
     #pauseBtn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 5;
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: white;
-      font-size: 18px;
-      padding: 6px 12px;
-      border-radius: 8px;
+      top: 10px; right: 10px; font-size: 18px; padding: 8px 12px;
+      background: rgba(255,255,255,0.2); color: white; border-radius: 6px;
+      cursor: pointer;
     }
-
     #leftBtn, #rightBtn {
-      position: absolute;
-      bottom: 20px;
-      width: 80px;
-      height: 80px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 50%;
-      font-size: 30px;
-      text-align: center;
-      line-height: 80px;
-      user-select: none;
-      z-index: 5;
+      bottom: 20px; width: 80px; height: 80px;
+      background: rgba(255,255,255,0.2); border-radius: 50%;
+      font-size: 30px; text-align: center; line-height: 80px;
+      user-select: none; color: white; cursor: pointer;
     }
-
     #leftBtn { left: 10px; }
     #rightBtn { right: 10px; }
   </style>
 </head>
 <body>
+  <div id="menu">
+    <h1>🚀 Rocket Dodge</h1>
+    <p>Use arrow keys or on-screen buttons to dodge bullets.</p>
+    <p>Collect power-ups, stay alive as long as you can.</p>
+    <p>High Score: <span id="menuHighScore">0</span></p>
+    <button id="startBtn">Start Game</button>
+  </div>
   <button id="pauseBtn">⏸</button>
   <div id="leftBtn">⬅️</div>
   <div id="rightBtn">➡️</div>
+  <div id="messageBox"></div>
   <canvas id="gameCanvas"></canvas>
 
+  <!-- AUDIO FILES (use your own if desired) -->
+  <audio id="bgMusic" loop src="https://cdn.pixabay.com/download/audio/2021/09/09/audio_3c287814ef.mp3"></audio>
+  <audio id="bulletSound" src="https://cdn.pixabay.com/download/audio/2021/10/21/audio_2a7e51ef4e.mp3"></audio>
+  <audio id="powerupSound" src="https://cdn.pixabay.com/download/audio/2021/10/21/audio_2a7e51ef4e.mp3"></audio>
+  <audio id="gameOverSound" src="https://cdn.pixabay.com/download/audio/2022/03/21/audio_127f20a1e6.mp3"></audio>
+
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+    const canvas = document.getElementById("gameCanvas"), ctx = canvas.getContext("2d");
+    const menu = document.getElementById("menu"), startBtn = document.getElementById("startBtn");
+    const menuHS = document.getElementById("menuHighScore");
+    const pauseBtn = document.getElementById("pauseBtn"), msgBox = document.getElementById("messageBox");
+    const leftBtn = document.getElementById("leftBtn"), rightBtn = document.getElementById("rightBtn");
+
+    const bgMusic = document.getElementById("bgMusic"),
+          bulletSound = document.getElementById("bulletSound"),
+          powerupSound = document.getElementById("powerupSound"),
+          gameOverSound = document.getElementById("gameOverSound");
+
+    let rocket = { x:0, y:0, width:30, height:40, speed:6, color:"red", trail:[] };
+    let bullets = [], powerups = [];
+    let score=0, highScore=localStorage.getItem("highScore")||0, level=1, bulletSpeed=4;
+    let paused=false, leftPressed=False, rightPressed=False;
+    let currentPowerup=null, powerupTimer=0;
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    resetRocket();
 
-    const rocket = {
-      x: canvas.width / 2 - 15,
-      y: canvas.height - 60,
-      width: 30,
-      height: 40,
-      speed: 6,
-      color: "red"
-    };
+    menuHS.textContent = highScore;
 
-    let bullets = [];
-    let score = 0;
-    let highScore = localStorage.getItem("highScore") || 0;
-    let level = 1;
-    let bulletSpeed = 4;
-    let paused = false;
-    let lastLevelScore = 0;
-    let leftPressed = false, rightPressed = false;
+    startBtn.addEventListener("click", () => {
+      menu.style.display="none";
+      startGame();
+    });
 
-    function drawRocket() {
-      ctx.fillStyle = rocket.color;
-      ctx.fillRect(rocket.x, rocket.y, rocket.width, rocket.height);
+    function startGame(){
+      bullets=[], powerups=[]; score=0; level=1; bulletSpeed=4;
+      currentPowerup=null; powerupTimer=0; paused=false;
+      bgMusic.currentTime=0; bgMusic.play();
+      resetRocket();
+      loop();
     }
 
-    function drawBullets() {
-      ctx.fillStyle = "white";
-      bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
+    function resetRocket(){
+      rocket.trail=[];
+      rocket.x = canvas.width/2 - rocket.width/2;
+      rocket.y = canvas.height - rocket.height - 20;
     }
 
-    function updateBullets() {
-      bullets.forEach(b => b.y += bulletSpeed);
-      bullets = bullets.filter(b => b.y < canvas.height);
+    function showMessage(text,dur=2000){
+      msgBox.textContent=text; msgBox.style.display="block";
+      setTimeout(()=> msgBox.style.display="none", dur);
     }
 
-    function spawnBullet() {
-      const size = 20;
-      bullets.push({
-        x: Math.random() * (canvas.width - size),
-        y: -size,
-        width: size,
-        height: size
+    function drawRocket(){
+      rocket.trail.push({x:rocket.x+rocket.width/2, y:rocket.y+rocket.height});
+      if(rocket.trail.length>20) rocket.trail.shift();
+
+      rocket.trail.forEach((t,i)=>{
+        ctx.fillStyle=`rgba(255,100,0,${i/rocket.trail.length})`;
+        ctx.beginPath();
+        ctx.arc(t.x,t.y,3,0,2*Math.PI);
+        ctx.fill();
+      });
+
+      ctx.fillStyle=rocket.color;
+      ctx.fillRect(rocket.x,rocket.y,rocket.width,rocket.height);
+    }
+
+    function drawBullets(){
+      ctx.fillStyle="white";
+      bullets.forEach(b=>ctx.fillRect(b.x,b.y,b.size,b.size));
+    }
+
+    function drawPowerups(){
+      powerups.forEach(p=>{
+        ctx.fillStyle=p.color;
+        ctx.fillRect(p.x,p.y,p.size,p.size);
       });
     }
 
-    function checkCollision() {
-      for (const b of bullets) {
-        if (
-          rocket.x < b.x + b.width &&
-          rocket.x + rocket.width > b.x &&
-          rocket.y < b.y + b.height &&
-          rocket.y + rocket.height > b.y
-        ) {
-          endGame();
-          return;
+    function drawHUD(){
+      ctx.fillStyle="white";
+      ctx.font="18px Segoe UI";
+      ctx.fillText("Score: "+score,10,30);
+      ctx.fillText("High: "+highScore,10,50);
+      ctx.fillText("Level: "+level,10,70);
+      if(currentPowerup){
+        ctx.fillStyle="cyan";
+        ctx.fillText("Powerup: "+currentPowerup.toUpperCase(), canvas.width/2-60,30);
+      }
+    }
+
+    function spawnBullet(){
+      bullets.push({x:Math.random()*(canvas.width-20), y:-20, size:20});
+      bulletSound.currentTime=0;
+      bulletSound.play();
+    }
+
+    function spawnPowerup(){
+      const types=["shield","slow","double","freeze","nuke"];
+      const type=types[Math.floor(Math.random()*types.length)];
+      const colorMap={shield:"cyan",slow:"blue",double:"yellow",freeze:"lime",nuke:"orange"};
+      powerups.push({x:Math.random()*(canvas.width-20), y:-20, size:20, type, color:colorMap[type]});
+    }
+
+    function activatePowerup(type){
+      currentPowerup=type; powerupTimer=300;
+      powerupSound.currentTime=0; powerupSound.play();
+      showMessage("Powerup: "+type.toUpperCase());
+      if(type==="nuke"||type==="freeze") bullets=[];
+      if(type==="nuke") level++; // reward
+    }
+
+    function endGame(){
+      paused=true;
+      bgMusic.pause();
+      gameOverSound.currentTime=0; gameOverSound.play();
+      if(score>highScore){
+        highScore=score;
+        localStorage.setItem("highScore",highScore);
+        menuHS.textContent=highScore;
+      }
+      showMessage("Game Over! Score: "+score,3000);
+      setTimeout(()=> menu.style.display="flex",3000);
+    }
+
+    function update(){
+      if(leftPressed) rocket.x -= rocket.speed;
+      if(rightPressed) rocket.x += rocket.speed;
+      rocket.x=Math.max(0,Math.min(canvas.width-rocket.width,rocket.x));
+
+      bullets.forEach(b=>b.y+=bulletSpeed);
+      bullets=bullets.filter(b=>b.y<canvas.height);
+
+      powerups.forEach(p=>p.y+=2);
+      powerups=powerups.filter(p=>p.y<canvas.height);
+
+      if(currentPowerup!=="shield"){
+        bullets.forEach(b=>{
+          if(rocket.x<b.x+b.size && rocket.x+rocket.width>b.x &&
+             rocket.y<b.y+b.size && rocket.y+rocket.height>b.y){
+            endGame();
+          }
+        });
+      }
+
+      powerups.forEach((p,i)=>{
+        if(rocket.x<p.x+p.size && rocket.x+rocket.width>p.x &&
+           rocket.y<p.y+p.size && rocket.y+rocket.height>p.y){
+          activatePowerup(p.type);
+          powerups.splice(i,1);
+        }
+      });
+
+      score++;
+      if(score%100===0){level++; bulletSpeed+=0.5;}
+      if(Math.random()<0.03) spawnBullet();
+      if(Math.random()<0.005) spawnPowerup();
+
+      if(powerupTimer>0){
+        powerupTimer--;
+        if(powerupTimer===0){
+          currentPowerup=null;
+          bulletSpeed=4+(level-1)*0.5;
+        } else if(currentPowerup==="slow"){
+          bulletSpeed=1;
+        } else if(currentPowerup==="double"){
+          score++;
         }
       }
     }
 
-    function endGame() {
-      paused = true;
-      alert(`Game Over!\nScore: ${score}\nHigh Score: ${highScore}`);
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem("highScore", highScore);
-      }
-      resetGame();
-    }
-
-    function resetGame() {
-      bullets = [];
-      score = 0;
-      level = 1;
-      bulletSpeed = 4;
-      lastLevelScore = 0;
-      rocket.x = canvas.width / 2 - rocket.width / 2;
-      paused = false;
-    }
-
-    function drawHUD() {
-      ctx.fillStyle = "white";
-      ctx.font = "20px Arial";
-      ctx.fillText(`Score: ${score}`, 10, 30);
-      ctx.fillText(`Level: ${level}`, 10, 60);
-      ctx.fillText(`High Score: ${highScore}`, 10, 90);
-    }
-
-    function gameLoop() {
-      if (paused) return requestAnimationFrame(gameLoop);
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (leftPressed) rocket.x -= rocket.speed;
-      if (rightPressed) rocket.x += rocket.speed;
-
-      rocket.x = Math.max(0, Math.min(canvas.width - rocket.width, rocket.x));
-
+    function loop(){
+      if(paused) return;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      update();
       drawRocket();
       drawBullets();
+      drawPowerups();
       drawHUD();
-      updateBullets();
-      checkCollision();
-
-      score++;
-
-      if (score - lastLevelScore >= 100) {
-        level++;
-        bulletSpeed += 0.5;
-        lastLevelScore = score;
-      }
-
-      if (Math.random() < 0.05 + level * 0.002) {
-        spawnBullet();
-      }
-
-      requestAnimationFrame(gameLoop);
+      requestAnimationFrame(loop);
     }
 
-    gameLoop();
-
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowLeft") leftPressed = true;
-      if (e.key === "ArrowRight") rightPressed = true;
+    // Controls
+    document.addEventListener("keydown",e=>{
+      if(e.key==="ArrowLeft") leftPressed=true;
+      if(e.key==="ArrowRight") rightPressed=true;
+      if(e.key==="p") paused=!paused && loop();
+    });
+    document.addEventListener("keyup",e=>{
+      if(e.key==="ArrowLeft") leftPressed=false;
+      if(e.key==="ArrowRight") rightPressed=false;
+    });
+    leftBtn.addEventListener("touchstart",()=>leftPressed=true);
+    leftBtn.addEventListener("touchend",()=>leftPressed=false);
+    rightBtn.addEventListener("touchstart",()=>rightPressed=true);
+    rightBtn.addEventListener("touchend",()=>rightPressed=false);
+    pauseBtn.addEventListener("click",()=> paused=!paused && loop());
+    window.addEventListener("resize",()=>{
+      canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+      resetRocket();
     });
 
-    document.addEventListener("keyup", e => {
-      if (e.key === "ArrowLeft") leftPressed = false;
-      if (e.key === "ArrowRight") rightPressed = false;
-    });
-
-    document.getElementById("leftBtn").addEventListener("touchstart", () => leftPressed = true);
-    document.getElementById("leftBtn").addEventListener("touchend", () => leftPressed = false);
-    document.getElementById("rightBtn").addEventListener("touchstart", () => rightPressed = true);
-    document.getElementById("rightBtn").addEventListener("touchend", () => rightPressed = false);
-
-    document.getElementById("pauseBtn").addEventListener("click", () => {
-      paused = !paused;
-      if (!paused) gameLoop();
-    });
-
-    window.addEventListener("resize", () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      rocket.y = canvas.height - 60;
-    });
+    // start visible if you refresh in middle
+    paused=true;
   </script>
 </body>
 </html>
