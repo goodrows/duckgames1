@@ -3,37 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rocket Dodge Game</title>
+  <title>Rocket Dodge</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
     body {
+      margin: 0;
       overflow: hidden;
-      background: #111;
-      color: white;
+      background: black;
       font-family: sans-serif;
+      color: white;
     }
-
     #gameArea {
       position: relative;
       width: 100vw;
       height: 100vh;
-      background: #111;
+      overflow: hidden;
     }
-
     #rocket {
       position: absolute;
-      width: 20px;
+      width: 40px;
       height: 40px;
       background: red;
-      bottom: 10px;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       border-radius: 5px;
     }
-
     .bullet {
       position: absolute;
       width: 10px;
@@ -41,275 +35,293 @@
       background: white;
       top: 0;
     }
-
-    #ui {
+    .powerup {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: cyan;
+      border-radius: 50%;
+      top: 0;
+    }
+    #scoreBoard {
       position: absolute;
       top: 10px;
       left: 10px;
+      font-size: 18px;
       z-index: 10;
     }
-
-    #controls {
-      position: absolute;
-      bottom: 60px;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 40px;
-      z-index: 10;
-    }
-
-    .control-btn {
-      padding: 20px;
-      font-size: 24px;
-      background: #333;
-      color: white;
-      border: none;
-      border-radius: 10px;
-    }
-
     #pauseBtn {
       position: absolute;
       top: 10px;
       right: 10px;
-      padding: 10px 20px;
-      font-size: 18px;
       z-index: 10;
+      padding: 8px 16px;
+      font-size: 16px;
     }
-
-    #gameOver {
+    #controls {
+      position: absolute;
+      bottom: 60px;
+      width: 100%;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .control-btn {
+      padding: 30px;
+      font-size: 32px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      pointer-events: all;
+    }
+    #leftBtn {
+      position: absolute;
+      left: 20px;
+      bottom: 60px;
+    }
+    #rightBtn {
+      position: absolute;
+      right: 20px;
+      bottom: 60px;
+    }
+    #retryBtn {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      text-align: center;
-      display: none;
-    }
-
-    #retryBtn {
-      margin-top: 10px;
-      padding: 10px 20px;
+      padding: 12px 24px;
       font-size: 18px;
+      display: none;
+      z-index: 11;
     }
   </style>
 </head>
 <body>
   <div id="gameArea">
     <div id="rocket"></div>
-    <div id="ui">
-      <div id="scoreDisplay">Score: 0</div>
-      <div id="levelDisplay">Level: 1</div>
-      <div id="livesDisplay">Lives: 3</div>
-      <div id="highScoreDisplay">High Score: 0</div>
-    </div>
+    <div id="scoreBoard">Score: 0 | Lives: 3 | Level: 1 | High Score: 0</div>
     <button id="pauseBtn">Pause</button>
+    <button id="retryBtn">Retry</button>
     <div id="controls">
-      <button class="control-btn" id="leftBtn">◀️</button>
-      <button class="control-btn" id="rightBtn">▶️</button>
-    </div>
-    <div id="gameOver">
-      <h1>Game Over</h1>
-      <button id="retryBtn">Retry</button>
+      <button id="leftBtn" class="control-btn">◀️</button>
+      <button id="rightBtn" class="control-btn">▶️</button>
     </div>
   </div>
 
-  <!-- Sound effects -->
-  <audio id="hitSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_49e285bc94.mp3?filename=error-126627.mp3"></audio>
-  <audio id="bulletSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f23d6d9901.mp3?filename=pop-126629.mp3"></audio>
-  <audio id="levelupSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c15612090a.mp3?filename=notification-126626.mp3"></audio>
+  <audio id="hitSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
   <script>
-    const rocket = document.getElementById("rocket");
     const gameArea = document.getElementById("gameArea");
-    const gameOverText = document.getElementById("gameOver");
-    const retryBtn = document.getElementById("retryBtn");
-    const scoreDisplay = document.getElementById("scoreDisplay");
-    const levelDisplay = document.getElementById("levelDisplay");
-    const livesDisplay = document.getElementById("livesDisplay");
-    const highScoreDisplay = document.getElementById("highScoreDisplay");
+    const rocket = document.getElementById("rocket");
+    const scoreBoard = document.getElementById("scoreBoard");
     const pauseBtn = document.getElementById("pauseBtn");
-
-    const leftBtn = document.getElementById("leftBtn");
-    const rightBtn = document.getElementById("rightBtn");
-
+    const retryBtn = document.getElementById("retryBtn");
     const hitSound = document.getElementById("hitSound");
-    const bulletSound = document.getElementById("bulletSound");
-    const levelupSound = document.getElementById("levelupSound");
 
-    let rocketX = window.innerWidth / 2 - 10;
-    rocket.style.left = rocketX + "px";
-
+    let bullets = [];
+    let powerups = [];
     let score = 0;
+    let highScore = localStorage.getItem("highScore") || 0;
     let level = 1;
     let lives = 3;
-    let bulletSpeed = 5;
-    let spawnRate = 600;
+    let bulletSpeed = 4;
+    let rocketSpeed = 10;
+    let leftPressed = false;
+    let rightPressed = false;
     let isPaused = false;
-    let bullets = [];
+    let powerupActive = false;
+    let powerupTimer = null;
+    let animationId;
 
-    let highScore = localStorage.getItem("highScore") || 0;
-    highScoreDisplay.textContent = "High Score: " + highScore;
-
-    let spawnTimer, scoreInterval, levelInterval;
-    let animationFrameId = null;
-
-    function moveRocket(dir) {
-      if (dir === "left" && rocketX > 0) rocketX -= 20;
-      else if (dir === "right" && rocketX < window.innerWidth - 20) rocketX += 20;
-      rocket.style.left = rocketX + "px";
-    }
-
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowLeft") moveRocket("left");
-      if (e.key === "ArrowRight") moveRocket("right");
-    });
-
-    leftBtn.addEventListener("click", () => moveRocket("left"));
-    rightBtn.addEventListener("click", () => moveRocket("right"));
-
-    pauseBtn.addEventListener("click", () => {
-      isPaused ? resumeGame() : pauseGame();
-    });
-
-    function pauseGame() {
-      isPaused = true;
-      pauseBtn.textContent = "Resume";
-      clearInterval(spawnTimer);
-      clearInterval(scoreInterval);
-      clearInterval(levelInterval);
-      cancelAnimationFrame(animationFrameId);
-    }
-
-    function resumeGame() {
+    function startGame() {
+      score = 0;
+      lives = 3;
+      level = 1;
+      bulletSpeed = 4;
       isPaused = false;
-      pauseBtn.textContent = "Pause";
-      spawnTimer = setInterval(spawnBullet, spawnRate);
-      scoreInterval = setInterval(() => {
-        score++;
-        scoreDisplay.textContent = "Score: " + score;
-      }, 500);
-      levelInterval = setInterval(() => {
-        level++;
-        bulletSpeed += 1;
-        if (spawnRate > 200) spawnRate -= 50;
-        levelDisplay.textContent = "Level: " + level;
-        levelupSound.currentTime = 0;
-        levelupSound.play();
-        clearInterval(spawnTimer);
-        spawnTimer = setInterval(spawnBullet, spawnRate);
-      }, 5000);
+      bullets = [];
+      powerups = [];
+      rocket.style.left = "50%";
+      retryBtn.style.display = "none";
+      updateScore();
+      spawnBullet();
+      spawnPowerup();
       animate();
     }
 
+    function updateScore() {
+      scoreBoard.textContent = `Score: ${score} | Lives: ${lives} | Level: ${level} | High Score: ${highScore}`;
+    }
+
     function spawnBullet() {
+      if (isPaused) return;
+
       const bullet = document.createElement("div");
       bullet.classList.add("bullet");
       bullet.style.left = Math.random() * (window.innerWidth - 10) + "px";
       bullet.style.top = "0px";
       gameArea.appendChild(bullet);
-      bulletSound.currentTime = 0;
-      bulletSound.play();
+      bullets.push({ el: bullet, x: bullet.offsetLeft, y: 0 });
 
-      bullets.push({
-        el: bullet,
-        x: bullet.offsetLeft,
-        y: 0
-      });
+      setTimeout(spawnBullet, 800 - level * 20);
+    }
+
+    function spawnPowerup() {
+      if (isPaused || powerupActive) return;
+
+      const powerup = document.createElement("div");
+      powerup.classList.add("powerup");
+      powerup.style.left = Math.random() * (window.innerWidth - 20) + "px";
+      gameArea.appendChild(powerup);
+
+      powerups.push({ el: powerup, x: powerup.offsetLeft, y: 0 });
+
+      setTimeout(spawnPowerup, 8000 + Math.random() * 8000);
+    }
+
+    function activatePowerup() {
+      if (powerupActive) return;
+      powerupActive = true;
+      navigator.vibrate?.([100, 50, 100]);
+      const originalSpeed = bulletSpeed;
+      bulletSpeed = 2;
+      rocket.style.background = "yellow";
+
+      if (powerupTimer) clearTimeout(powerupTimer);
+      powerupTimer = setTimeout(() => {
+        bulletSpeed = originalSpeed;
+        rocket.style.background = "red";
+        powerupActive = false;
+      }, 5000);
     }
 
     function animate() {
-      if (isPaused) return;
+      if (isPaused) {
+        cancelAnimationFrame(animationId);
+        return;
+      }
 
       bullets.forEach((b, i) => {
         b.y += bulletSpeed;
         b.el.style.top = b.y + "px";
 
-        const rocketRect = rocket.getBoundingClientRect();
-        const bulletRect = b.el.getBoundingClientRect();
+        const r = rocket.getBoundingClientRect();
+        const br = b.el.getBoundingClientRect();
 
         if (
-          bulletRect.top < rocketRect.bottom &&
-          bulletRect.bottom > rocketRect.top &&
-          bulletRect.left < rocketRect.right &&
-          bulletRect.right > rocketRect.left
+          !powerupActive &&
+          br.top < r.bottom &&
+          br.bottom > r.top &&
+          br.left < r.right &&
+          br.right > r.left
         ) {
-          hitSound.currentTime = 0;
-          hitSound.play();
-          b.el.remove();
+          gameArea.removeChild(b.el);
           bullets.splice(i, 1);
           lives--;
-          livesDisplay.textContent = "Lives: " + lives;
-          if (lives <= 0) gameOver();
+          hitSound.currentTime = 0;
+          hitSound.play();
+          navigator.vibrate?.(100);
+          updateScore();
+          if (lives <= 0) {
+            gameOver();
+            return;
+          }
         }
 
         if (b.y > window.innerHeight) {
           b.el.remove();
           bullets.splice(i, 1);
+          score++;
+          if (score % 10 === 0) {
+            level++;
+            bulletSpeed += 0.5;
+          }
+          updateScore();
         }
       });
 
-      animationFrameId = requestAnimationFrame(animate);
-    }
+      powerups.forEach((p, i) => {
+        p.y += bulletSpeed / 2;
+        p.el.style.top = p.y + "px";
 
-    function startGame() {
-      rocketX = window.innerWidth / 2 - 10;
-      rocket.style.left = rocketX + "px";
+        const r = rocket.getBoundingClientRect();
+        const pr = p.el.getBoundingClientRect();
 
-      score = 0;
-      level = 1;
-      lives = 3;
-      bulletSpeed = 5;
-      spawnRate = 600;
-      isPaused = false;
-      bullets = [];
+        if (
+          pr.top < r.bottom &&
+          pr.bottom > r.top &&
+          pr.left < r.right &&
+          pr.right > r.left
+        ) {
+          activatePowerup();
+          p.el.remove();
+          powerups.splice(i, 1);
+        }
 
-      pauseBtn.textContent = "Pause";
-      gameOverText.style.display = "none";
+        if (p.y > window.innerHeight) {
+          p.el.remove();
+          powerups.splice(i, 1);
+        }
+      });
 
-      scoreDisplay.textContent = "Score: 0";
-      levelDisplay.textContent = "Level: 1";
-      livesDisplay.textContent = "Lives: 3";
-      highScoreDisplay.textContent = "High Score: " + highScore;
+      const rocketX = rocket.offsetLeft;
+      if (leftPressed && rocketX > 0) {
+        rocket.style.left = rocketX - rocketSpeed + "px";
+      }
+      if (rightPressed && rocketX < window.innerWidth - rocket.offsetWidth) {
+        rocket.style.left = rocketX + rocketSpeed + "px";
+      }
 
-      document.querySelectorAll(".bullet").forEach(b => b.remove());
-
-      spawnTimer = setInterval(spawnBullet, spawnRate);
-      scoreInterval = setInterval(() => {
-        score++;
-        scoreDisplay.textContent = "Score: " + score;
-      }, 500);
-
-      levelInterval = setInterval(() => {
-        level++;
-        bulletSpeed += 1;
-        if (spawnRate > 200) spawnRate -= 50;
-        levelDisplay.textContent = "Level: " + level;
-        levelupSound.currentTime = 0;
-        levelupSound.play();
-        clearInterval(spawnTimer);
-        spawnTimer = setInterval(spawnBullet, spawnRate);
-      }, 5000);
-
-      animate();
+      animationId = requestAnimationFrame(animate);
     }
 
     function gameOver() {
-      isPaused = true;
-      clearInterval(spawnTimer);
-      clearInterval(scoreInterval);
-      clearInterval(levelInterval);
-      cancelAnimationFrame(animationFrameId);
-
+      cancelAnimationFrame(animationId);
+      navigator.vibrate?.([200, 100, 200]);
+      retryBtn.style.display = "block";
       if (score > highScore) {
         highScore = score;
         localStorage.setItem("highScore", highScore);
-        highScoreDisplay.textContent = "High Score: " + highScore;
       }
-
-      gameOverText.style.display = "block";
     }
 
-    retryBtn.addEventListener("click", startGame);
+    function pauseGame() {
+      isPaused = true;
+      pauseBtn.textContent = "Resume";
+      navigator.vibrate?.(50);
+    }
+
+    function resumeGame() {
+      isPaused = false;
+      pauseBtn.textContent = "Pause";
+      navigator.vibrate?.(50);
+      animate();
+    }
+
+    pauseBtn.addEventListener("click", () => {
+      isPaused ? resumeGame() : pauseGame();
+    });
+
+    retryBtn.addEventListener("click", () => {
+      startGame();
+    });
+
+    // Desktop controls
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") leftPressed = true;
+      if (e.key === "ArrowRight") rightPressed = true;
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowLeft") leftPressed = false;
+      if (e.key === "ArrowRight") rightPressed = false;
+    });
+
+    // Mobile buttons
+    document.getElementById("leftBtn").addEventListener("touchstart", () => (leftPressed = true));
+    document.getElementById("leftBtn").addEventListener("touchend", () => (leftPressed = false));
+    document.getElementById("rightBtn").addEventListener("touchstart", () => (rightPressed = true));
+    document.getElementById("rightBtn").addEventListener("touchend", () => (rightPressed = false));
+
     startGame();
   </script>
 </body>
