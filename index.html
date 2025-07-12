@@ -3,272 +3,191 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>🚀 Rocket Dodger - Ultra Retro</title>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+<title>Retro Rocket Dodger</title>
 <style>
-  /* Basic resets */
-  html, body {
-    margin: 0; padding: 0; overflow: hidden;
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  body {
+    margin: 0;
     background: #000;
-    font-family: 'Press Start 2P', monospace;
-    color: #00ff00;
+    color: #0f0;
+    font-family: 'Press Start 2P', cursive;
     user-select: none;
-    -webkit-font-smoothing: none;
-    -moz-osx-font-smoothing: grayscale;
-    /* Pixelated text */
-    image-rendering: pixelated;
+    overflow-x: hidden;
   }
-
   #gameArea {
     position: relative;
     width: 100vw;
     height: 100vh;
-    background: #001000;
     overflow: hidden;
-    filter: contrast(1.2) brightness(1.1);
+    background: radial-gradient(circle at center, #001100 0%, #000000 80%);
   }
-
-  /* Scanlines overlay */
-  #gameArea::before {
-    content: "";
-    pointer-events: none;
-    position: absolute;
-    width: 100%; height: 100%;
-    top: 0; left: 0;
-    background:
-      repeating-linear-gradient(
-        to bottom,
-        rgba(0,255,0,0.05) 0,
-        rgba(0,255,0,0.05) 1px,
-        transparent 1px,
-        transparent 3px
-      );
-    z-index: 1000;
-    animation: flicker 3s infinite;
-  }
-
-  /* Flicker animation for CRT effect */
-  @keyframes flicker {
-    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-      opacity: 1;
-    }
-    20%, 22%, 24%, 55% {
-      opacity: 0.85;
-    }
-  }
-
-  /* Retro pixel text glow */
-  #scoreboard, #powerupNote, #buttons button {
-    text-shadow:
-      0 0 4px #0f0,
-      0 0 10px #0f0,
-      0 0 20px #0f0,
-      0 0 40px #0f0;
-  }
-
-  #scoreboard {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    font-size: 12px;
-    z-index: 1500;
-  }
-
-  #powerupNote {
-    position: absolute;
-    top: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 14px;
-    color: #7f7;
-    user-select: none;
-    z-index: 1500;
-  }
-
-  #buttons {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 1500;
-    display: flex;
-    gap: 8px;
-  }
-
-  #retryBtn, #pauseBtn {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 10px;
-    color: #00ff00;
-    background: transparent;
-    border: 2px solid #0f0;
-    padding: 6px 12px;
-    cursor: pointer;
-    user-select: none;
-    filter: drop-shadow(0 0 4px #0f0);
-    transition: background-color 0.3s, color 0.3s;
-  }
-
-  #retryBtn:hover, #pauseBtn:hover {
-    background: #0f0;
-    color: #000;
-    filter: drop-shadow(0 0 8px #0f0);
-  }
-
-  #retryBtn {
-    display: none;
-  }
-
-  /* Mobile controls */
-  #mobileControls {
-    position: absolute;
-    bottom: 50px;
-    left: 0;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 20px;
-    z-index: 1500;
-    user-select: none;
-  }
-  #mobileControls button {
-    width: 80px;
-    height: 80px;
-    font-size: 36px;
-    color: #0f0;
-    background: transparent;
-    border: 3px solid #0f0;
-    border-radius: 6px;
-    cursor: pointer;
-    opacity: 0.4;
-    filter: drop-shadow(0 0 4px #0f0);
-    transition: opacity 0.2s;
-  }
-  #mobileControls button:hover {
-    opacity: 0.9;
-  }
-  #rightBtn {
-    margin-right: 10px;
-  }
-
-  /* Rocket pixel art shape */
   #rocket {
     position: absolute;
-    width: 24px;
-    height: 32px;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 40px;
+    width: 32px;
+    height: 48px;
     background:
-      linear-gradient(90deg, #0f0 4px, transparent 4px),
-      linear-gradient(#0f0 4px, transparent 4px);
-    background-size: 4px 4px;
-    background-repeat: repeat;
-    border: 2px solid #0f0;
+      linear-gradient(to bottom, #0f0 0%, #060 100%);
+    border: 3px solid #080;
     box-sizing: border-box;
-    filter: drop-shadow(0 0 6px #0f0);
-  }
-  /* Make rocket shape a pixel rocket by layering squares */
-
-  /* Use pseudo elements for pixel fins and nose */
-  #rocket::before, #rocket::after {
-    content: "";
-    position: absolute;
-    background: #0f0;
+    border-radius: 4px 4px 0 0;
     filter: drop-shadow(0 0 3px #0f0);
   }
-  #rocket::before {
-    width: 6px; height: 4px;
-    bottom: 2px; left: -6px;
-  }
-  #rocket::after {
-    width: 6px; height: 4px;
-    bottom: 2px; right: -6px;
-  }
-
-  /* Bullets pixel block */
   .bullet {
     position: absolute;
     width: 8px;
     height: 16px;
     background: #0f0;
-    border: 1px solid #080;
-    box-sizing: border-box;
-    filter: drop-shadow(0 0 4px #0f0);
+    border: 2px solid #080;
+    border-radius: 1px;
+    filter: drop-shadow(0 0 3px #0f0);
   }
-
-  /* Powerups pixel style circles */
   .powerup {
     position: absolute;
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    border: 2px solid #0f0;
-    filter:
-      drop-shadow(0 0 5px #0f0);
-    box-sizing: border-box;
+    border: 2px solid #080;
+    filter: drop-shadow(0 0 3px #0f0);
   }
-  .shield { background: #0ff; border-color: #0cc; }
-  .points { background: #6f6; border-color: #3c3; }
-  .speed { background: #fa0; border-color: #c70; }
-  .freeze { background: #00f; border-color: #009; }
-  .life { background: #f6a; border-color: #c60; }
+  .shield { background: #004400; box-shadow: 0 0 10px #0f0 inset; }
+  .points { background: #0a0; }
+  .speed { background: #0f0; }
+  .freeze { background: #055; }
+  .life { background: #0c0; }
 
-  /* Pixel trail for rocket */
+  #scoreBoard {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    font-size: 12px;
+    line-height: 1.3;
+    color: #0c0;
+    text-shadow: 0 0 2px #040;
+  }
+  #scoreBoard div {
+    margin-bottom: 4px;
+  }
+
+  #powerupNote {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: #0f0;
+    text-shadow: 0 0 3px #060;
+    min-width: 250px;
+    text-align: center;
+  }
+
+  button {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 9px;
+    padding: 6px 10px;
+    margin: 4px;
+    border: 1px solid #0a0;
+    border-radius: 3px;
+    background: #020;
+    color: #0a0;
+    cursor: pointer;
+    text-shadow: 0 0 4px #080;
+    transition: background-color 0.2s, color 0.2s;
+    user-select: none;
+  }
+  button:hover {
+    background: #050;
+    color: #0f0;
+    text-shadow: 0 0 8px #0f0;
+  }
+  button:active {
+    background: #0a0;
+    color: #030;
+    text-shadow: none;
+  }
+
+  #controls {
+    position: fixed;
+    bottom: 20px;
+    right: 10px;
+    display: flex;
+    gap: 10px;
+  }
+  .control-btn {
+    width: 48px;
+    height: 48px;
+    background: #020;
+    border: 2px solid #0a0;
+    border-radius: 8px;
+    filter: drop-shadow(0 0 4px #080);
+    touch-action: none;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0a0;
+    font-size: 20px;
+    font-weight: bold;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .control-btn:active {
+    background: #0a0;
+    color: #030;
+    filter: drop-shadow(0 0 8px #0f0);
+  }
+
+  #startScreen {
+    position: fixed;
+    inset: 0;
+    background: #000a;
+    color: #0f0;
+    font-family: 'Press Start 2P', cursive;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    cursor: pointer;
+    user-select: none;
+    z-index: 9999;
+    text-align: center;
+    padding: 20px;
+  }
+
   .trail {
     position: absolute;
     width: 6px;
     height: 6px;
-    background: rgba(0,255,0,0.2);
+    background: #0f0;
+    opacity: 0.2;
     border-radius: 1px;
     pointer-events: none;
-    filter: drop-shadow(0 0 3px #0f0);
   }
-
-  /* Blinking start screen */
-  #startScreen {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    color: #0f0;
-    font-size: 16px;
-    text-align: center;
-    z-index: 2000;
-    text-shadow:
-      0 0 6px #0f0,
-      0 0 15px #0f0,
-      0 0 30px #0f0;
-    user-select: none;
-    cursor: pointer;
-    animation: blink 1.4s infinite;
-  }
-  @keyframes blink {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0; }
-  }
-
 </style>
 </head>
 <body>
 <div id="gameArea">
   <div id="rocket"></div>
-  <div id="scoreboard">
-    SCORE: <span id="score">0</span> |
-    HIGH: <span id="highScore">0</span> |
-    LIVES: <span id="lives">3</span> |
-    LEVEL: <span id="level">1</span>
-  </div>
-  <div id="powerupNote"></div>
-  <div id="buttons">
-    <button id="retryBtn">RESTART</button>
-    <button id="pauseBtn">PAUSE</button>
-  </div>
-  <div id="mobileControls">
-    <button id="leftBtn">⬅️</button>
-    <button id="rightBtn">➡️</button>
-  </div>
-  <div id="startScreen">PRESS START<br>⬇️ CLICK OR TAP</div>
 </div>
 
-<audio id="bgMusic" loop src="https://cdn.pixabay.com/audio/2022/03/15/audio_bab590d1a7.mp3"></audio>
+<div id="scoreBoard">
+  <div>SCORE: <span id="score">0</span></div>
+  <div>HIGHSCORE: <span id="highScore">0</span></div>
+  <div>LIVES: <span id="lives">3</span></div>
+  <div>LEVEL: <span id="level">1</span></div>
+</div>
+
+<div id="powerupNote"></div>
+
+<div id="controls">
+  <button id="leftBtn" class="control-btn" aria-label="Move Left">&#8592;</button>
+  <button id="pauseBtn">PAUSE</button>
+  <button id="retryBtn" style="display:none;">RESTART</button>
+  <button id="rightBtn" class="control-btn" aria-label="Move Right">&#8594;</button>
+</div>
+
+<div id="startScreen">CLICK OR TAP TO START</div>
+
+<audio id="bgMusic" src="https://freesound.org/data/previews/331/331912_3248244-lq.mp3" loop></audio>
 <audio id="powerupSound" src="https://freesound.org/data/previews/331/331912_3248244-lq.mp3"></audio>
 <audio id="hitSound" src="https://freesound.org/data/previews/331/331911_3248244-lq.mp3"></audio>
 
@@ -302,8 +221,8 @@
   let lives = 3;
   let level = 1;
 
-  let bulletSpeed = 4;
-  let rocketSpeed = 10;
+  let bulletSpeed = 3.5;
+  let rocketSpeed = 6;
 
   let shieldActive = false;
   let doublePointsActive = false;
@@ -323,6 +242,7 @@
     resetGame();
     bgMusic.volume = 0.3;
     bgMusic.play();
+    lastFrameTime = performance.now();
     requestAnimationFrame(gameLoop);
   }
 
@@ -349,13 +269,13 @@
              r2.bottom < r1.top);
   }
 
-  function moveRocket() {
-    let x = rocket.offsetLeft;
-    if (leftPressed) x -= rocketSpeed;
-    if (rightPressed) x += rocketSpeed;
-    // Clamp inside screen
-    x = Math.max(0, Math.min(window.innerWidth - rocket.offsetWidth, x));
-    rocket.style.left = x + "px";
+  let rocketX = window.innerWidth / 2 - 16;
+
+  function moveRocket(deltaTime) {
+    if (leftPressed) rocketX -= rocketSpeed * deltaTime;
+    if (rightPressed) rocketX += rocketSpeed * deltaTime;
+    rocketX = Math.max(0, Math.min(window.innerWidth - rocket.offsetWidth, rocketX));
+    rocket.style.left = rocketX + "px";
     createTrail();
   }
 
@@ -369,10 +289,10 @@
     bullets.push({el: bulletEl, y: -20});
   }
 
-  function moveBullets() {
-    bullets.forEach((b, i) => {
-      if (freezeBulletsActive) return;
-      b.y += bulletSpeed;
+  function moveBullets(deltaTime) {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i];
+      if (!freezeBulletsActive) b.y += bulletSpeed * deltaTime * 60;
       if (b.y > window.innerHeight) {
         b.el.remove();
         bullets.splice(i, 1);
@@ -398,7 +318,7 @@
           bullets.splice(i, 1);
         }
       }
-    });
+    }
   }
 
   // Powerup types and activation logic
@@ -426,12 +346,12 @@
       class: "speed",
       activate() {
         speedBoostActive = true;
-        rocketSpeed = 18;
+        rocketSpeed = 12;
         showPowerupNotification("Speed Boost!");
         powerupSound.play();
         setTimeout(() => {
           speedBoostActive = false;
-          rocketSpeed = 10;
+          rocketSpeed = 6;
           showPowerupNotification("Speed Boost Ended");
         }, 6000);
         return true;
@@ -481,9 +401,10 @@
     });
   }
 
-  function movePowerups() {
-    powerups.forEach((p, i) => {
-      p.y += 2;
+  function movePowerups(deltaTime) {
+    for (let i = powerups.length - 1; i >= 0; i--) {
+      const p = powerups[i];
+      p.y += 2 * deltaTime * 60;
       if (p.y > window.innerHeight) {
         p.el.remove();
         powerups.splice(i, 1);
@@ -498,12 +419,12 @@
           }
         }
       }
-    });
+    }
   }
 
   function increaseLevel() {
     level++;
-    bulletSpeed += 1;
+    bulletSpeed += 0.6;
     showPowerupNotification("LEVEL UP! Speed increased");
     updateScore();
   }
@@ -517,18 +438,23 @@
   function showPowerupNotification(text) {
     powerupNote.textContent = text;
     setTimeout(() => {
-      powerupNote.textContent = "";
+      if (powerupNote.textContent === text) powerupNote.textContent = "";
     }, 2500);
   }
 
+  let lastFrameTime = 0;
   function gameLoop(time) {
+    if (!lastFrameTime) lastFrameTime = time;
+    const deltaTime = (time - lastFrameTime) / 1000;
+    lastFrameTime = time;
+
     if (isPaused) {
       requestAnimationFrame(gameLoop);
       return;
     }
-    moveRocket();
-    moveBullets();
-    movePowerups();
+    moveRocket(deltaTime);
+    moveBullets(deltaTime);
+    movePowerups(deltaTime);
 
     if (!lastSpawnBulletTime || time - lastSpawnBulletTime > 600) {
       spawnBullet();
@@ -549,83 +475,104 @@
   }
 
   function resetGame() {
+    // Clear bullets and powerups
     bullets.forEach(b => b.el.remove());
-    bullets = [];
     powerups.forEach(p => p.el.remove());
+    bullets = [];
     powerups = [];
 
     score = 0;
-    level = 1;
     lives = 3;
-    bulletSpeed = 4;
-    rocketSpeed = 10;
+    level = 1;
+    bulletSpeed = 3.5;
+    rocketSpeed = 6;
     shieldActive = false;
     doublePointsActive = false;
     speedBoostActive = false;
     freezeBulletsActive = false;
-    clearTimeout(freezeTimeout);
+    lastSpawnBulletTime = 0;
+    lastSpawnPowerupTime = 0;
+    lastLevelUpScore = 0;
+
+    updateScore();
+    rocketX = window.innerWidth / 2 - 16;
+    rocket.style.left = rocketX + "px";
 
     retryBtn.style.display = "none";
     pauseBtn.style.display = "inline-block";
-    pauseBtn.textContent = "PAUSE";
-    isPaused = false;
-
-    rocket.style.left = (window.innerWidth / 2 - rocket.offsetWidth / 2) + "px";
-    updateScore();
-    powerupNote.textContent = "";
-
-    bgMusic.currentTime = 0;
   }
 
   function endGame() {
     isPaused = true;
-    retryBtn.style.display = "inline-block";
     pauseBtn.style.display = "none";
-    bgMusic.pause();
+    retryBtn.style.display = "inline-block";
     if (score > highScore) {
       highScore = score;
       localStorage.setItem("highScore", highScore);
       highScoreEl.textContent = highScore;
-      alert("NEW HIGH SCORE: " + highScore);
     }
-    powerupNote.textContent = "GAME OVER! PRESS RESTART";
+    showPowerupNotification("GAME OVER!");
   }
 
   retryBtn.addEventListener("click", () => {
+    isPaused = false;
     resetGame();
-    bgMusic.play();
-    requestAnimationFrame(gameLoop);
   });
 
   pauseBtn.addEventListener("click", () => {
-    if (isPaused) {
-      isPaused = false;
-      pauseBtn.textContent = "PAUSE";
-      bgMusic.play();
-    } else {
-      isPaused = true;
-      pauseBtn.textContent = "RESUME";
-      bgMusic.pause();
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? "RESUME" : "PAUSE";
+  });
+
+  // Keyboard controls
+  window.addEventListener("keydown", e => {
+    if (e.code === "ArrowLeft" || e.code === "KeyA") {
+      leftPressed = true;
+    }
+    if (e.code === "ArrowRight" || e.code === "KeyD") {
+      rightPressed = true;
+    }
+    if (e.code === "Space") {
+      pauseBtn.click();
+    }
+  });
+  window.addEventListener("keyup", e => {
+    if (e.code === "ArrowLeft" || e.code === "KeyA") {
+      leftPressed = false;
+    }
+    if (e.code === "ArrowRight" || e.code === "KeyD") {
+      rightPressed = false;
     }
   });
 
-  window.addEventListener("keydown", e => {
-    if (e.code === "ArrowLeft" || e.code === "KeyA") leftPressed = true;
-    if (e.code === "ArrowRight" || e.code === "KeyD") rightPressed = true;
+  // Touch controls for buttons
+  leftBtn.addEventListener("touchstart", e => {
+    e.preventDefault();
+    leftPressed = true;
   });
-  window.addEventListener("keyup", e => {
-    if (e.code === "ArrowLeft" || e.code === "KeyA") leftPressed = false;
-    if (e.code === "ArrowRight" || e.code === "KeyD") rightPressed = false;
+  leftBtn.addEventListener("touchend", e => {
+    e.preventDefault();
+    leftPressed = false;
+  });
+  rightBtn.addEventListener("touchstart", e => {
+    e.preventDefault();
+    rightPressed = true;
+  });
+  rightBtn.addEventListener("touchend", e => {
+    e.preventDefault();
+    rightPressed = false;
   });
 
-  leftBtn.addEventListener("touchstart", e => { e.preventDefault(); leftPressed = true; });
-  leftBtn.addEventListener("touchend", e => { e.preventDefault(); leftPressed = false; });
-  rightBtn.addEventListener("touchstart", e => { e.preventDefault(); rightPressed = true; });
-  rightBtn.addEventListener("touchend", e => { e.preventDefault(); rightPressed = false; });
+  // Prevent scrolling on touch buttons
+  ["touchstart", "touchmove"].forEach(evt =>
+    document.getElementById("controls").addEventListener(evt, e => e.preventDefault())
+  );
 
-  // Initialize rocket position
-  rocket.style.left = (window.innerWidth / 2 - rocket.offsetWidth / 2) + "px";
-
+  // Adjust rocket position on resize
+  window.addEventListener("resize", () => {
+    rocketX = Math.min(rocketX, window.innerWidth - rocket.offsetWidth);
+    rocket.style.left = rocketX + "px";
+  });
 })();
 </script>
 </body>
