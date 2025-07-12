@@ -348,4 +348,161 @@
     rocket.style.left = Math.min(Math.max(left, 0), maxLeft) + "px";
   }
 
-  function
+  function gameOver() {
+    isPaused = true;
+    retryBtn.style.display = "inline-block";
+    pauseBtn.style.display = "none";
+    powerupNote.textContent = "GAME OVER!";
+  }
+
+  function resetGame() {
+    score = 0;
+    level = 1;
+    lives = 3;
+    bulletSpeed = 4;
+    rocketSpeed = 10;
+    bullets.forEach(b => b.el.remove());
+    bullets = [];
+    powerups.forEach(p => p.el.remove());
+    powerups = [];
+    shieldActive = false;
+    doublePointsActive = false;
+    speedBoostActive = false;
+    freezeBulletsActive = false;
+    isPaused = false;
+    retryBtn.style.display = "none";
+    pauseBtn.style.display = "inline-block";
+    powerupNote.textContent = "";
+    updateScore();
+  }
+
+  retryBtn.addEventListener("click", () => {
+    resetGame();
+    lastSpawnBulletTime = performance.now();
+    lastSpawnPowerupTime = performance.now();
+    requestAnimationFrame(gameLoop);
+  });
+
+  pauseBtn.addEventListener("click", () => {
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? "RESUME" : "PAUSE";
+    if (!isPaused) {
+      lastSpawnBulletTime = performance.now();
+      lastSpawnPowerupTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.repeat) return;
+    if (e.key === "ArrowLeft") leftPressed = true;
+    if (e.key === "ArrowRight") rightPressed = true;
+    if (e.key === "p") {
+      pauseBtn.click();
+    }
+  });
+  document.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowLeft") leftPressed = false;
+    if (e.key === "ArrowRight") rightPressed = false;
+  });
+
+  leftBtn.addEventListener("touchstart", e => { e.preventDefault(); leftPressed = true; });
+  leftBtn.addEventListener("touchend", e => { e.preventDefault(); leftPressed = false; });
+  rightBtn.addEventListener("touchstart", e => { e.preventDefault(); rightPressed = true; });
+  rightBtn.addEventListener("touchend", e => { e.preventDefault(); rightPressed = false; });
+
+  function gameLoop(time=0) {
+    if (isPaused) return;
+
+    // Move rocket
+    if (leftPressed) moveRocket(-rocketSpeed);
+    if (rightPressed) moveRocket(rocketSpeed);
+
+    // Spawn bullets over time, faster with level
+    if (time - lastSpawnBulletTime > 1000 - level * 60) {
+      spawnBullet();
+      lastSpawnBulletTime = time;
+    }
+    // Spawn powerups less often
+    if (time - lastSpawnPowerupTime > 10000) {
+      spawnPowerup();
+      lastSpawnPowerupTime = time;
+    }
+
+    // Move bullets
+    bullets.forEach((bullet, i) => {
+      if (!freezeBulletsActive) bullet.y += bulletSpeed;
+      bullet.el.style.top = bullet.y + "px";
+      // Remove bullets off screen
+      if (bullet.y > window.innerHeight) {
+        bullet.el.remove();
+        bullets.splice(i, 1);
+        score += doublePointsActive ? 2 : 1;
+        updateScore();
+        if (score % 50 === 0) {
+          level++;
+          bulletSpeed += 1;
+          showPowerupNotification("LEVEL UP!");
+        }
+      }
+    });
+
+    // Move powerups down slower
+    powerups.forEach((pwr, i) => {
+      pwr.y += 2;
+      pwr.el.style.top = pwr.y + "px";
+      if (pwr.y > window.innerHeight) {
+        pwr.el.remove();
+        powerups.splice(i, 1);
+      }
+    });
+
+    // Collision detection
+    const rocketRect = rocket.getBoundingClientRect();
+
+    bullets.forEach((bullet, i) => {
+      const bRect = bullet.el.getBoundingClientRect();
+      if (rectsIntersect(rocketRect, bRect)) {
+        bullet.el.remove();
+        bullets.splice(i, 1);
+        if (shieldActive) {
+          shieldActive = false;
+          showPowerupNotification("SHIELD USED!");
+          return;
+        }
+        lives--;
+        hitSound.play();
+        updateScore();
+        if (lives <= 0) {
+          if (score > highScore) {
+            localStorage.setItem("highScore", score);
+            highScore = score;
+            highScoreEl.textContent = highScore;
+          }
+          gameOver();
+        }
+      }
+    });
+
+    powerups.forEach((pwr, i) => {
+      const pRect = pwr.el.getBoundingClientRect();
+      if (rectsIntersect(rocketRect, pRect)) {
+        const activated = pwr.type.activate();
+        if (activated) {
+          pwr.el.remove();
+          powerups.splice(i, 1);
+        }
+      }
+    });
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  updateScore();
+  lastSpawnBulletTime = performance.now();
+  lastSpawnPowerupTime = performance.now();
+  requestAnimationFrame(gameLoop);
+})();
+</script>
+</body>
+</html>
