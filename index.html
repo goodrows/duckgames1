@@ -2,61 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Rocket Dodger</title>
+  <title>Retro Rocket Dodger</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <style>
     html, body {
       margin: 0; padding: 0; overflow: hidden;
-      font-family: sans-serif;
       background: #000;
-      color: white;
+      font-family: 'Press Start 2P', cursive;
       user-select: none;
       height: 100%;
       width: 100%;
+      color: #00FF00;
     }
     #gameArea {
       position: relative;
       width: 100vw;
       height: 100vh;
-      background: radial-gradient(#111, #000);
+      background: #000;
+      border: 4px solid #00FF00;
+      box-sizing: border-box;
+      image-rendering: pixelated;
       overflow: hidden;
     }
     #rocket {
       position: absolute;
       width: 40px;
       height: 60px;
-      background: red;
+      background: #FF0000;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      border-radius: 0; /* no curves */
+      border: 2px solid #880000;
+      box-sizing: border-box;
+      image-rendering: pixelated;
     }
     .bullet {
       position: absolute;
       width: 10px;
       height: 20px;
-      background: yellow;
-      border-radius: 0; /* no curves */
+      background: #FFFF00;
+      border: 1.5px solid #888800;
+      box-sizing: border-box;
+      image-rendering: pixelated;
     }
     .powerup {
       position: absolute;
       width: 22px;
       height: 22px;
-      border-radius: 50%;
-      background: white;
-      border: 2px solid #fff;
+      box-sizing: border-box;
+      border: 3px solid #00FF00;
+      image-rendering: pixelated;
     }
-    .shield { background: cyan; }
-    .points { background: lime; }
-    .speed { background: orange; }
-    .freeze { background: blue; }
-    .life { background: pink; }
+    .shield {
+      background: #00FFFF;
+      border-color: #008888;
+    }
+    .points {
+      background: #00FF00;
+      border-color: #008800;
+    }
+    .speed {
+      background: #FF8800;
+      border-color: #885500;
+    }
+    .freeze {
+      background: #0000FF;
+      border-color: #000088;
+    }
+    .life {
+      background: #FF00FF;
+      border-color: #880088;
+    }
 
     #scoreboard {
       position: absolute;
       top: 10px;
       left: 10px;
-      font-size: 18px;
+      background: #000;
+      padding: 10px 16px;
+      border: 3px solid #00FF00;
+      font-size: 14px;
+      letter-spacing: 1.2px;
+      user-select: none;
+      white-space: nowrap;
       z-index: 10;
+      image-rendering: pixelated;
     }
     #buttons {
       position: absolute;
@@ -65,10 +95,22 @@
       z-index: 10;
     }
     #buttons button {
-      font-size: 18px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 14px;
       margin-left: 10px;
-      padding: 10px 20px;
+      padding: 8px 14px;
       cursor: pointer;
+      background: #000;
+      color: #00FF00;
+      border: 3px solid #00FF00;
+      text-transform: uppercase;
+      user-select: none;
+      image-rendering: pixelated;
+      transition: background 0.2s;
+    }
+    #buttons button:hover {
+      background: #00FF00;
+      color: #000;
     }
     #mobileControls {
       position: absolute;
@@ -77,28 +119,46 @@
       width: 100%;
       display: flex;
       justify-content: space-between;
-      padding: 0 20px;
+      padding: 0 40px;
       z-index: 10;
     }
     #mobileControls button {
       width: 80px;
       height: 80px;
-      font-size: 36px;
-      opacity: 0.4;
+      font-size: 42px;
+      background: #000;
+      color: #00FF00;
+      border: 4px solid #00FF00;
       cursor: pointer;
       user-select: none;
+      image-rendering: pixelated;
+      font-weight: bold;
+      line-height: 1;
+      transition: background 0.2s;
+    }
+    #mobileControls button:active {
+      background: #00FF00;
+      color: #000;
     }
     #powerupNote {
       position: absolute;
-      top: 40px;
+      top: 50px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 20px;
-      color: yellow;
-      text-shadow: 0 0 5px #fff;
+      font-size: 14px;
+      color: #FFFF00;
+      text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
       z-index: 10;
       pointer-events: none;
       user-select: none;
+      white-space: nowrap;
+      letter-spacing: 1.5px;
+      font-weight: bold;
+      font-family: 'Press Start 2P', cursive;
     }
   </style>
 </head>
@@ -106,19 +166,19 @@
   <div id="gameArea">
     <div id="rocket"></div>
     <div id="scoreboard">
-      Score: <span id="score">0</span> |
-      High: <span id="highScore">0</span> |
-      Lives: <span id="lives">3</span> |
-      Level: <span id="level">1</span>
+      SCORE: <span id="score">0</span> &nbsp;|&nbsp;
+      HIGH: <span id="highScore">0</span> &nbsp;|&nbsp;
+      LIVES: <span id="lives">3</span> &nbsp;|&nbsp;
+      LEVEL: <span id="level">1</span>
     </div>
     <div id="powerupNote"></div>
     <div id="buttons">
-      <button id="retryBtn" style="display:none;">Retry</button>
-      <button id="pauseBtn">Pause</button>
+      <button id="retryBtn" style="display:none;">RETRY</button>
+      <button id="pauseBtn">PAUSE</button>
     </div>
     <div id="mobileControls">
-      <button id="leftBtn">⬅️</button>
-      <button id="rightBtn">➡️</button>
+      <button id="leftBtn">◄</button>
+      <button id="rightBtn">►</button>
     </div>
   </div>
 
@@ -166,25 +226,22 @@
 
   highScoreEl.textContent = highScore;
 
-  // Update scoreboard UI
   function updateScore() {
     scoreEl.textContent = score;
     levelEl.textContent = level;
     livesEl.textContent = lives;
   }
 
-  // Spawn a bullet at random X top position
   function spawnBullet() {
     const bullet = document.createElement("div");
     bullet.className = "bullet";
-    const x = Math.random() * (window.innerWidth - 10);
+    const x = Math.floor(Math.random() * (window.innerWidth - 10));
     bullet.style.left = x + "px";
     bullet.style.top = "0px";
     gameArea.appendChild(bullet);
     bullets.push({ el: bullet, x, y: 0 });
   }
 
-  // Show powerup notification
   function showPowerupNotification(text) {
     powerupNote.textContent = text;
     setTimeout(() => {
@@ -198,11 +255,11 @@
       class: "shield",
       activate() {
         shieldActive = true;
-        showPowerupNotification("Shield Activated!");
+        showPowerupNotification("SHIELD ACTIVATED!");
         powerupSound.play();
         setTimeout(() => {
           shieldActive = false;
-          showPowerupNotification("Shield Wore Off");
+          showPowerupNotification("SHIELD WORE OFF");
         }, 5000);
         return true;
       }
@@ -213,11 +270,11 @@
       activate() {
         if (doublePointsActive) return false;
         doublePointsActive = true;
-        showPowerupNotification("Double Points!");
+        showPowerupNotification("DOUBLE POINTS!");
         powerupSound.play();
         setTimeout(() => {
           doublePointsActive = false;
-          showPowerupNotification("Double Points Ended");
+          showPowerupNotification("DOUBLE POINTS ENDED");
         }, 10000);
         return true;
       }
@@ -229,12 +286,12 @@
         if (speedBoostActive) return false;
         rocketSpeed = 18;
         speedBoostActive = true;
-        showPowerupNotification("Speed Boost!");
+        showPowerupNotification("SPEED BOOST!");
         powerupSound.play();
         setTimeout(() => {
           rocketSpeed = 10;
           speedBoostActive = false;
-          showPowerupNotification("Speed Normal");
+          showPowerupNotification("SPEED NORMAL");
         }, 6000);
         return true;
       }
@@ -245,11 +302,11 @@
       activate() {
         if (freezeBulletsActive) return false;
         freezeBulletsActive = true;
-        showPowerupNotification("Bullets Frozen!");
+        showPowerupNotification("BULLETS FROZEN!");
         powerupSound.play();
         freezeTimeout = setTimeout(() => {
           freezeBulletsActive = false;
-          showPowerupNotification("Bullets Unfrozen");
+          showPowerupNotification("BULLETS UNFROZEN");
         }, 4000);
         return true;
       }
@@ -259,7 +316,7 @@
       class: "life",
       activate() {
         lives++;
-        showPowerupNotification("+1 Life");
+        showPowerupNotification("+1 LIFE");
         powerupSound.play();
         updateScore();
         return true;
@@ -267,19 +324,17 @@
     }
   ];
 
-  // Spawn a powerup falling from top at random X
   function spawnPowerup() {
     const type = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
     const p = document.createElement("div");
     p.classList.add("powerup", type.class);
-    const x = Math.random() * (window.innerWidth - 22);
+    const x = Math.floor(Math.random() * (window.innerWidth - 22));
     p.style.left = x + "px";
     p.style.top = "0px";
     gameArea.appendChild(p);
     powerups.push({ el: p, type, x, y: 0 });
   }
 
-  // Check if two rectangles intersect (for collision)
   function rectsIntersect(r1, r2) {
     return !(r2.left > r1.right ||
              r2.right < r1.left ||
@@ -287,180 +342,10 @@
              r2.bottom < r1.top);
   }
 
-  // Move rocket left/right by dx, clamping to window
   function moveRocket(dx) {
     const left = rocket.offsetLeft + dx;
     const maxLeft = window.innerWidth - rocket.offsetWidth;
     rocket.style.left = Math.min(Math.max(left, 0), maxLeft) + "px";
   }
 
-  // Reset game state to initial
-  function resetGame() {
-    bullets.forEach(b => b.el.remove());
-    bullets = [];
-    powerups.forEach(p => p.el.remove());
-    powerups = [];
-    score = 0;
-    level = 1;
-    lives = 3;
-    bulletSpeed = 4;
-    rocketSpeed = 10;
-    shieldActive = false;
-    doublePointsActive = false;
-    speedBoostActive = false;
-    freezeBulletsActive = false;
-    lastSpawnBulletTime = 0;
-    lastSpawnPowerupTime = 0;
-    updateScore();
-    retryBtn.style.display = "none";
-    pauseBtn.style.display = "inline-block";
-    isPaused = false;
-  }
-
-  // Game over logic
-  function endGame() {
-    isPaused = true;
-    retryBtn.style.display = "inline-block";
-    pauseBtn.style.display = "none";
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem("highScore", highScore);
-      alert(`New High Score: ${highScore}!`);
-      highScoreEl.textContent = highScore;
-    } else {
-      alert(`Game Over! Score: ${score}. High Score: ${highScore}`);
-    }
-  }
-
-  // Main game loop
-  function gameLoop(timestamp=0) {
-    if (isPaused) {
-      requestAnimationFrame(gameLoop);
-      return;
-    }
-
-    if (!lastSpawnBulletTime) lastSpawnBulletTime = timestamp;
-    if (!lastSpawnPowerupTime) lastSpawnPowerupTime = timestamp;
-
-    // Spawn bullets every interval (speed up with level)
-    const bulletSpawnInterval = Math.max(150, 800 - level * 30);
-    if (timestamp - lastSpawnBulletTime > bulletSpawnInterval) {
-      spawnBullet();
-      lastSpawnBulletTime = timestamp;
-    }
-
-    // Spawn powerups every 8-13 sec
-    if (timestamp - lastSpawnPowerupTime > 8000 + Math.random() * 5000) {
-      spawnPowerup();
-      lastSpawnPowerupTime = timestamp;
-    }
-
-    // Move bullets down
-    bullets.forEach((b, i) => {
-      if (!freezeBulletsActive) b.y += bulletSpeed;
-      b.el.style.top = b.y + "px";
-
-      // If bullet off screen, remove and score points
-      if (b.y > window.innerHeight) {
-        b.el.remove();
-        bullets.splice(i, 1);
-        score += doublePointsActive ? 2 : 1;
-        updateScore();
-
-        // Every 20 points, increase level & bullet speed noticeably
-        if (score > 0 && score % 20 === 0) {
-          level++;
-          bulletSpeed += 1.2;
-          levelEl.textContent = level;
-        }
-      } else {
-        // Check collision with rocket
-        const rocketRect = rocket.getBoundingClientRect();
-        const bulletRect = b.el.getBoundingClientRect();
-        if (rectsIntersect(rocketRect, bulletRect)) {
-          if (shieldActive) {
-            shieldActive = false;
-            showPowerupNotification("Shield Used!");
-            b.el.remove();
-            bullets.splice(i, 1);
-            updateScore();
-          } else {
-            lives--;
-            hitSound.play();
-            updateScore();
-            b.el.remove();
-            bullets.splice(i, 1);
-            if (lives <= 0) {
-              endGame();
-            }
-          }
-        }
-      }
-    });
-
-    // Move powerups down
-    powerups.forEach((p, i) => {
-      p.y += 2;
-      p.el.style.top = p.y + "px";
-
-      if (p.y > window.innerHeight) {
-        p.el.remove();
-        powerups.splice(i, 1);
-      } else {
-        // Check collision with rocket
-        const rocketRect = rocket.getBoundingClientRect();
-        const powerupRect = p.el.getBoundingClientRect();
-        if (rectsIntersect(rocketRect, powerupRect)) {
-          // Try to activate powerup; if successful remove it
-          if (p.type.activate()) {
-            p.el.remove();
-            powerups.splice(i, 1);
-            updateScore();
-          }
-        }
-      }
-    });
-
-    // Move rocket with keyboard or mobile buttons
-    if (leftPressed) moveRocket(-rocketSpeed);
-    if (rightPressed) moveRocket(rocketSpeed);
-
-    requestAnimationFrame(gameLoop);
-  }
-
-  // Keyboard handlers
-  window.addEventListener("keydown", e => {
-    if (e.code === "ArrowLeft" || e.code === "KeyA") leftPressed = true;
-    if (e.code === "ArrowRight" || e.code === "KeyD") rightPressed = true;
-    // Pause on Space
-    if (e.code === "Space") pauseBtn.click();
-  });
-  window.addEventListener("keyup", e => {
-    if (e.code === "ArrowLeft" || e.code === "KeyA") leftPressed = false;
-    if (e.code === "ArrowRight" || e.code === "KeyD") rightPressed = false;
-  });
-
-  // Mobile controls handlers
-  leftBtn.addEventListener("touchstart", e => { e.preventDefault(); leftPressed = true; });
-  leftBtn.addEventListener("touchend", e => { e.preventDefault(); leftPressed = false; });
-  rightBtn.addEventListener("touchstart", e => { e.preventDefault(); rightPressed = true; });
-  rightBtn.addEventListener("touchend", e => { e.preventDefault(); rightPressed = false; });
-
-  // Pause button toggles pause
-  pauseBtn.onclick = () => {
-    isPaused = !isPaused;
-    pauseBtn.textContent = isPaused ? "Resume" : "Pause";
-  };
-
-  // Retry button resets game
-  retryBtn.onclick = () => {
-    resetGame();
-  };
-
-  // Start game initially
-  resetGame();
-  requestAnimationFrame(gameLoop);
-})();
-</script>
-</body>
-</html>
+  function
